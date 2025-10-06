@@ -61,10 +61,71 @@ cargo test --workspace
 
 ---
 
+## 🔄 CI/CD Automatizado
+
+### GitHub Actions Workflows
+
+| Workflow | Trigger | Descripción |
+|----------|---------|-------------|
+| `terraform-plan` | PR a main | Plan automático en PR |
+| `terraform-apply-dev` | Push a main | Deploy automático en dev |
+| `terraform-apply-qas` | Manual | Deploy controlado en qas |
+| `terraform-apply-prd` | Manual | Deploy a producción |
+| `backend-ci` | Cambios en backend/ | Tests + build lambdas |
+| `frontend-ci` | Cambios en frontend/ | Tests + build Svelte |
+
+### Flujo de Trabajo
+
+```bash
+# 1. Crear feature branch
+git checkout -b feature/nueva-funcionalidad
+
+# 2. Hacer cambios y push
+git push origin feature/nueva-funcionalidad
+
+# 3. Crear PR en GitHub
+# → terraform-plan se ejecuta automáticamente
+# → Comentario con plan aparece en PR
+
+# 4. Merge a main (después de aprobación)
+# → terraform-apply-dev se ejecuta automáticamente
+# → Dev se actualiza en ~10 minutos
+
+# 5. Deploy a producción (manual)
+gh workflow run terraform-apply-prd.yml -f confirm=yes
+```
+
+### Configuración Inicial
+
+Para configurar los workflows por primera vez:
+
+1. **Configurar Secrets de AWS**
+   ```bash
+   # Ver: .github/SECRETS_SETUP.md
+   # Configurar AWS_ROLE_TO_ASSUME en GitHub Settings
+   ```
+
+2. **Crear Environments**
+   - Settings → Environments
+   - Crear: `dev`, `qas`, `prd`
+   - Configurar required reviewers
+
+3. **Primera Ejecución**
+   ```bash
+   # Test del workflow
+   gh workflow run terraform-plan.yml
+   ```
+
+Ver documentación completa: [`.github/workflows/README.md`](.github/workflows/README.md)
+
+---
+
 ## 📚 Documentación
 
 - **[Arquitectura](docs/ARCHITECTURE.md)** - Diseño técnico y diagramas
 - **[Deployment](docs/DEPLOYMENT.md)** - Guía de deployment con Terraform
+- **[CI/CD](.github/workflows/README.md)** - Workflows y automatización
+- **[Secrets Setup](.github/SECRETS_SETUP.md)** - Configuración de secrets AWS
 - **[Desarrollo](docs/DEVELOPMENT.md)** - Setup y desarrollo local
 - **[Autenticación](docs/AUTHENTICATION.md)** - Flujo OAuth 2.0 con Cognito
 - **[API](docs/API.md)** - Especificación de endpoints
@@ -348,6 +409,12 @@ Ver [docs/TESTING.md](docs/TESTING.md) para más detalles.
 
 ### 🔄 Próximos Pasos
 
+- [ ] Configurar CI/CD (ver `.github/SECRETS_SETUP.md`)
+- [ ] Slack/Discord notifications en workflows
+- [ ] Drift detection scheduled
+- [ ] E2E tests post-deployment
+- [ ] Canary deployments en producción
+
 Ver [docs/ROADMAP.md](docs/ROADMAP.md) para el plan completo de mejoras.
 
 ---
@@ -384,6 +451,7 @@ MIT License - Ver [LICENSE](LICENSE) para detalles
 |---------|-------|
 | **Sistema funcional** | 100% ✅ |
 | **Infraestructura** | Terraform (3 ambientes) |
+| **CI/CD** | GitHub Actions (5 workflows) |
 | **Lambdas** | 8/8 (100%) |
 | **Endpoints** | 11/20 (55%) |
 | **Tests passing** | 85% |

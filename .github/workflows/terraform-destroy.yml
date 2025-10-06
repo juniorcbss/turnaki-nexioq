@@ -1,0 +1,157 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Ambiente a destruir (dev/qas/prd)'
+        required: true
+        type: choice
+        options:
+          - dev
+          - qas
+          - prd
+      confirm:
+        description: '⚠️ PELIGRO - Escribir "DESTROY" para confirmar'
+        required: true
+      backup_data:
+        description: 'Hacer backup de DynamoDB antes de destruir'
+        type: boolean
+        default: true
+
+env:
+  TF_VERSION: '1.9'
+  AWS_REGION: 'us-east-1'
+
+jobs:
+  validation:
+    name: Validación Pre-Destroy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "DESTROY" ]; then
+            echo "❌ Confirmación incorrecta. Debe escribir exactamente: DESTROY"
+            exit 1
+          fi
+
+      - name: Block Production Destroy
+        if: github.event.inputs.environment == 'prd'
+        run: |
+          echo "❌ DESTROY de producción requiere aprobación adicional"
+          echo "Contactar al equipo de DevOps"
+          exit 1
+
+  backup:
+    name: Backup de Datos
+    runs-on: ubuntu-latest
+    needs: validation
+    if: github.event.inputs.backup_data == 'true'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Export DynamoDB Data
+        run: |
+          ENVIRONMENT="${{ github.event.inputs.environment }}"
+          TABLE_NAME="tk-nq-${ENVIRONMENT}-main"
+          BACKUP_FILE="dynamodb-backup-${ENVIRONMENT}-$(date +%Y%m%d-%H%M%S).json"
+          
+          echo "📦 Exportando datos de $TABLE_NAME..."
+          
+          aws dynamodb scan \
+            --table-name "$TABLE_NAME" \
+            --output json \
+            > "$BACKUP_FILE"
+          
+          # Upload a S3
+          aws s3 cp "$BACKUP_FILE" "s3://tk-nq-backups-tfstate/dynamodb-backups/"
+          
+          echo "✅ Backup guardado en: s3://tk-nq-backups-tfstate/dynamodb-backups/$BACKUP_FILE"
+
+  destroy:
+    name: Destroy Infrastructure
+    runs-on: ubuntu-latest
+    needs: [validation, backup]
+    if: always() && needs.validation.result == 'success'
+    environment: ${{ github.event.inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: |
+          cd terraform/environments/${{ github.event.inputs.environment }}
+          terraform init
+
+      - name: Terraform Destroy Plan
+        run: |
+          cd terraform/environments/${{ github.event.inputs.environment }}
+          terraform plan -destroy -out=destroy.tfplan
+          terraform show destroy.tfplan
+
+      - name: Terraform Destroy
+        run: |
+          cd terraform/environments/${{ github.event.inputs.environment }}
+          terraform destroy -auto-approve
+
+      - name: Notify Destruction
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `### 🗑️ Infrastructure Destroyed
+            
+            **Ambiente:** ${{ github.event.inputs.environment }}
+            **Ejecutado por:** @${{ github.actor }}
+            **Fecha:** ${new Date().toISOString()}
+            
+            **Recursos eliminados:**
+            - DynamoDB Tables
+            - Lambda Functions
+            - API Gateway
+            - Cognito User Pool
+            - S3 Buckets (vaciados)
+            - CloudFront Distribution
+            - IAM Roles
+            - CloudWatch Logs
+            
+            ${github.event.inputs.backup_data ? '✅ Backup realizado antes de destruir' : '⚠️ No se realizó backup'}
+            
+            **Para recrear:**
+            \`\`\`bash
+            cd terraform/environments/${{ github.event.inputs.environment }}
+            terraform init
+            terraform apply
+            \`\`\`
+            `;
+            
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: output
+            });

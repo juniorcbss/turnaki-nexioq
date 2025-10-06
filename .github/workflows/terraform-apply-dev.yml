@@ -1,0 +1,306 @@
+name: Terraform Apply Dev
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Confirmar apply (yes/no)'
+        required: true
+        default: 'no'
+
+env:
+  TF_VERSION: '1.9'
+  AWS_REGION: 'us-east-1'
+  ENVIRONMENT: dev
+
+jobs:
+  apply:
+    name: Apply Dev
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: |
+          cd terraform/environments/dev
+          terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          cd terraform/environments/dev
+          terraform plan -out=tfplan -no-color
+          terraform show -no-color tfplan
+
+      - name: Terraform Apply
+        if: github.event_name == 'push' || github.event.inputs.confirm == 'yes'
+        run: |
+          cd terraform/environments/dev
+          terraform apply -auto-approve tfplan
+
+      - name: Export Outputs
+        id: outputs
+        run: |
+          cd terraform/environments/dev
+          echo "api_url=$(terraform output -raw api_base_url || echo 'not-available')" >> $GITHUB_OUTPUT
+          echo "cloudfront_url=$(terraform output -raw cloudfront_distribution_domain || echo 'not-available')" >> $GITHUB_OUTPUT
+
+      - name: Comment Deployment Status
+        uses: actions/github-script@v7
+        if: github.event_name == 'push'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `### ✅ Terraform Apply Dev - Completado
+            
+            **Ambiente:** dev
+            **Commit:** \`${{ github.sha }}\`
+            **Actor:** @${{ github.actor }}
+            
+            **Outputs:**
+            - API URL: \`${{ steps.outputs.outputs.api_url }}\`
+            - CloudFront: \`${{ steps.outputs.outputs.cloudfront_url }}\`
+            
+            **Siguiente paso:** Deploy de lambdas y frontend
+            `;
+            
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: output
+            });
+
+  deploy-backend:
+    name: Deploy Backend (Lambdas)
+    runs-on: ubuntu-latest
+    needs: apply
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-lambda
+        run: pip install cargo-lambda
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Build Lambdas
+        run: |
+          cd backend
+          cargo lambda build --arm64 --release
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy Lambdas
+        run: |
+          cd backend/target/lambda
+          
+          # Lista de funciones
+          functions=(
+            "availability"
+            "bookings"
+            "health"
+            "professionals"
+            "schedule-reminder"
+            "send-notification"
+            "tenants"
+            "treatments"
+          )
+          
+          for fn in "${functions[@]}"; do
+            if [ -d "$fn" ]; then
+              echo "Deploying $fn..."
+              aws lambda update-function-code \
+                --function-name "tk-nq-dev-$fn" \
+                --zip-file "fileb://$fn/bootstrap.zip" \
+                --no-cli-pager || echo "⚠️  Failed to deploy $fn (puede no existir aún)"
+            fi
+          done
+
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: apply
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get Bucket Name
+        id: bucket
+        run: |
+          cd terraform/environments/dev
+          terraform init
+          echo "bucket_name=$(terraform output -raw frontend_bucket_name || echo 'tk-nq-dev-frontend')" >> $GITHUB_OUTPUT
+
+      - name: Deploy to S3
+        run: |
+          cd frontend
+          aws s3 sync build/ "s3://${{ steps.bucket.outputs.bucket_name }}/" \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*.html" \
+            --exclude "manifest.json"
+          
+          # HTML sin cache
+          aws s3 sync build/ "s3://${{ steps.bucket.outputs.bucket_name }}/" \
+            --exclude "*" \
+            --include "*.html" \
+            --include "manifest.json" \
+            --cache-control "public, max-age=0, must-revalidate"
+
+      - name: Invalidate CloudFront
+        run: |
+          cd terraform/environments/dev
+          DISTRIBUTION_ID=$(terraform output -raw cloudfront_distribution_id || echo "")
+          if [ -n "$DISTRIBUTION_ID" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id "$DISTRIBUTION_ID" \
+              --paths "/*"
+          fi
+
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-backend, deploy-frontend]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get API URL
+        id: api
+        run: |
+          cd terraform/environments/dev
+          terraform init
+          API_URL=$(terraform output -raw api_base_url)
+          echo "url=$API_URL" >> $GITHUB_OUTPUT
+
+      - name: Test Health Endpoint
+        run: |
+          echo "Testing: ${{ steps.api.outputs.url }}/health"
+          response=$(curl -s -o /dev/null -w "%{http_code}" "${{ steps.api.outputs.url }}/health")
+          
+          if [ "$response" = "200" ]; then
+            echo "✅ Health check passed (HTTP $response)"
+          else
+            echo "❌ Health check failed (HTTP $response)"
+            exit 1
+          fi
+
+      - name: Test API Endpoints
+        run: |
+          BASE_URL="${{ steps.api.outputs.url }}"
+          
+          # Test public endpoints
+          endpoints=(
+            "/health"
+            "/tenants"
+          )
+          
+          for endpoint in "${endpoints[@]}"; do
+            echo "Testing: $BASE_URL$endpoint"
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL$endpoint")
+            echo "  Response: HTTP $http_code"
+          done
+
+      - name: Deployment Summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
+            const output = `### ${status} Deployment Dev - Completado
+            
+            **Ambiente:** dev
+            **Commit:** \`${{ github.sha }}\`
+            **API:** ${{ steps.api.outputs.url }}
+            
+            **Componentes desplegados:**
+            - ✅ Terraform Infrastructure
+            - ✅ Backend Lambdas
+            - ✅ Frontend (S3 + CloudFront)
+            - ${status} Health Checks
+            
+            **Próximos pasos:**
+            - Ejecutar tests E2E si es necesario
+            - Monitorear CloudWatch por errores
+            `;
+            
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: output
+            });

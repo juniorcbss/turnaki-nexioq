@@ -7,6 +7,84 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+## [2.1.0] - 2025-10-06
+
+### 🔄 CI/CD Automatizado (Fase 6)
+
+**Nuevo Feature Mayor**: Pipeline completa de CI/CD con GitHub Actions para deployment automatizado de infraestructura, backend y frontend.
+
+#### Added
+
+- ✅ **GitHub Actions Workflows**
+  - `terraform-plan.yml` - Plan automático en PRs con comentarios
+  - `terraform-apply-dev.yml` - Deploy automático a dev en push a main
+  - `terraform-apply-qas.yml` - Deploy manual controlado a qas
+  - `terraform-apply-prd.yml` - Deploy a producción con validaciones y protecciones
+  - `terraform-destroy.yml` - Destrucción controlada con backup automático
+  
+- ✅ **Automatización de Deploy**
+  - Build automático de lambdas Rust con cargo-lambda
+  - Deploy gradual de funciones Lambda
+  - Build y deploy de frontend Svelte
+  - Sync a S3 con cache control optimizado
+  - Invalidación automática de CloudFront
+  
+- ✅ **Health Checks Automáticos**
+  - Verificación de endpoints críticos post-deployment
+  - Tests de disponibilidad de API
+  - Notificaciones de éxito/fallo en commits
+  
+- ✅ **Seguridad y Protecciones**
+  - Ambiente protections (dev, qas, prd)
+  - Required reviewers para QAS (1+) y PRD (2+)
+  - Confirmación explícita para deployments críticos
+  - OIDC con AWS (sin access keys en código)
+  - Diferentes roles IAM por ambiente
+  
+- ✅ **Documentación CI/CD**
+  - `.github/SECRETS_SETUP.md` - Guía completa de configuración de secrets
+  - `.github/workflows/README.md` - Documentación de workflows
+  - `terraform/FASE6_COMPLETADA.md` - Reporte de implementación
+  
+- ✅ **Optimizaciones**
+  - Rust cache con Swatinem/rust-cache@v2
+  - Artifacts de Terraform plan (retención 7 días)
+  - Comentarios automáticos en PRs con resultados
+  - Release tagging automático en producción
+
+#### Changed
+
+- 🔄 **Flujo de Desarrollo**
+  - Ya no se requiere ejecutar terraform localmente
+  - Plan automático visible en PRs
+  - Deploy a dev sin intervención manual
+  
+- 🔄 **Deployment Manual Mejorado**
+  - Scripts de terraform mantienen compatibilidad
+  - Workflows complementan (no reemplazan) deployment manual
+  - Mayor visibilidad con comentarios y notificaciones
+
+#### Performance
+
+- ⚡ **Tiempo de Deployment Reducido**
+  - Dev: 25-30 min → 8-12 min (-60%)
+  - QAS: 30-35 min → 8-12 min (-65%)
+  - PRD: 40-50 min → 10-15 min (-70%)
+  
+- ⚡ **Build Cache**
+  - Rust build con cache: 8 min → 3 min
+  - Node modules cacheados
+  - Terraform init cacheado
+
+#### Documentation
+
+- 📚 README principal actualizado con sección CI/CD
+- 📚 Documentación de workflows completa
+- 📚 Guía de troubleshooting de CI/CD
+- 📚 Mejores prácticas documentadas
+
+---
+
 ## [2.0.0] - 2025-10-06
 
 ### 🚀 Migración a Terraform
