@@ -1,0 +1,29 @@
+{
+  "tenants": [
+    {
+      "name": "Clínica Dental Sonrisas",
+      "contact_email": "admin@sonrisas.com",
+      "timezone": "America/Bogota"
+    }
+  ],
+  "treatments": [
+    {
+      "name": "Limpieza Dental",
+      "duration_minutes": 30,
+      "buffer_minutes": 10,
+      "price": 50000
+    },
+    {
+      "name": "Extracción Simple",
+      "duration_minutes": 45,
+      "buffer_minutes": 15,
+      "price": 80000
+    },
+    {
+      "name": "Ortodoncia - Primera Consulta",
+      "duration_minutes": 60,
+      "buffer_minutes": 15,
+      "price": 120000
+    }
+  ]
+}

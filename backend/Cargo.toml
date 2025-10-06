@@ -1,0 +1,13 @@
+[workspace]
+members = [
+  "functions/health",
+  "functions/availability",
+  "functions/tenants",
+  "functions/treatments",
+  "functions/bookings",
+  "functions/professionals",
+  "functions/send-notification",
+  "functions/schedule-reminder",
+  "shared-lib"
+]
+resolver = "2"

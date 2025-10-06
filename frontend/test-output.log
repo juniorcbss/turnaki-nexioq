@@ -1,0 +1,110 @@
+
+Running 4 tests using 4 workers
+
+(node:80703) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:80704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:80702) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:80701) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:80702) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:80701) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:80704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:80703) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+🔴 Console Error: Failed to load resource: the server responded with a status of 404 (Not Found)
+🔴 Network Error: https://x292iexx8a.execute-api.us-east-1.amazonaws.com/health net::ERR_ABORTED
+📡 API Call: GET https://x292iexx8a.execute-api.us-east-1.amazonaws.com/health
+📥 API Response: 200 https://x292iexx8a.execute-api.us-east-1.amazonaws.com/health
+   Body: {"service":"health","status":"ok"}
+
+📊 Resumen de llamadas API:
+1. GET https://x292iexx8a.execute-api.us-east-1.amazonaws.com/health
+
+✓ Treatments API llamada: false
+  ✓  3 [chromium] › e2e/booking-complete-flow.spec.ts:115:3 › Flujo Completo de Reserva › debe verificar llamadas API durante la reserva (4.5s)
+
+📊 DIAGNÓSTICO:
+═══════════════════════════════════════════════════════════
+✓ Página cargó: SÍ
+✓ Tratamientos visibles: NO
+✓ Errores en consola: 1
+✓ Errores de red: 1
+✓ Mensaje de error visible: SÍ
+
+❌ ERRORES DE CONSOLA:
+  1. Failed to load resource: the server responded with a status of 404 (Not Found)
+
+❌ ERRORES DE RED:
+  1. https://x292iexx8a.execute-api.us-east-1.amazonaws.com/health - net::ERR_ABORTED
+
+📸 Screenshot guardado en: test-results/booking-diagnostico.png
+═══════════════════════════════════════════════════════════
+
+  ✘  1 [chromium] › e2e/booking-complete-flow.spec.ts:19:3 › Flujo Completo de Reserva › debe completar el flujo de reserva CON mock de auth (6.3s)
+  ✓  2 [chromium] › e2e/booking-complete-flow.spec.ts:175:3 › Flujo Completo de Reserva › debe diagnosticar por qué no funciona la reserva (6.7s)
+  ✘  4 [chromium] › e2e/booking-complete-flow.spec.ts:11:3 › Flujo Completo de Reserva › debe mostrar la página de reserva sin autenticación (30.2s)
+
+
+  1) [chromium] › e2e/booking-complete-flow.spec.ts:11:3 › Flujo Completo de Reserva › debe mostrar la página de reserva sin autenticación 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('text=Reservar Cita')[22m
+
+
+      11 |   test('debe mostrar la página de reserva sin autenticación', async ({ page }) => {
+      12 |     // Click en Reservar Cita sin estar autenticado
+    > 13 |     await page.click('text=Reservar Cita');
+         |                ^
+      14 |     
+      15 |     // Debería redirigir al home porque no está autenticado
+      16 |     await expect(page).toHaveURL('http://localhost:5173/');
+        at /Users/calixtosaldarriaga/development/gpt-5/turnaki-nexioq/frontend/e2e/booking-complete-flow.spec.ts:13:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/booking-complete-flow-Fluj-4343d-e-reserva-sin-autenticación-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/booking-complete-flow-Fluj-4343d-e-reserva-sin-autenticación-chromium/error-context.md
+
+  2) [chromium] › e2e/booking-complete-flow.spec.ts:19:3 › Flujo Completo de Reserva › debe completar el flujo de reserva CON mock de auth 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+
+    Locator:  locator('text=test@example.com')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('text=test@example.com')[22m
+
+
+      31 |     
+      32 |     // Verificar que estamos autenticados
+    > 33 |     await expect(page.locator('text=test@example.com')).toBeVisible();
+         |                                                         ^
+      34 |
+      35 |     // Click en Reservar Cita
+      36 |     await page.click('text=Reservar Cita');
+        at /Users/calixtosaldarriaga/development/gpt-5/turnaki-nexioq/frontend/e2e/booking-complete-flow.spec.ts:33:57
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/booking-complete-flow-Fluj-b93fa-de-reserva-CON-mock-de-auth-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/booking-complete-flow-Fluj-b93fa-de-reserva-CON-mock-de-auth-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/booking-complete-flow.spec.ts:11:3 › Flujo Completo de Reserva › debe mostrar la página de reserva sin autenticación 
+    [chromium] › e2e/booking-complete-flow.spec.ts:19:3 › Flujo Completo de Reserva › debe completar el flujo de reserva CON mock de auth 
+  2 passed (33.3s)

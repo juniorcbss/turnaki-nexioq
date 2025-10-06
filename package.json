@@ -1,0 +1,25 @@
+{
+  "name": "turnaki-nexioq",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "infra"
+  ],
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "bootstrap": "npm -w infra install && npm -w frontend install",
+    "build": "npm run build:backend && npm -w frontend run build",
+    "build:backend": "cargo lambda build --arm64 --release --manifest-path backend/Cargo.toml",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cargo test --manifest-path backend/Cargo.toml --workspace",
+    "test:frontend": "npm -w frontend run test",
+    "test:e2e": "npm -w frontend run test:e2e",
+    "test:all": "npm test && npm run test:e2e",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cargo fmt --manifest-path backend/Cargo.toml --all -- --check && cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings",
+    "lint:frontend": "npm -w frontend run lint"
+  }
+}

@@ -1,0 +1,2 @@
+# Deny all warnings in CI
+warn-on-all-wildcard-imports = true

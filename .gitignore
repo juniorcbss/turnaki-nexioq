@@ -1,0 +1,47 @@
+# Node
+node_modules/
+.npmrc
+npm-debug.log*
+.pnpm-store/
+
+# Frontend
+frontend/.svelte-kit/
+frontend/build/
+frontend/.vite/
+frontend/.env*
+
+# Rust
+backend/target/
+**/*.rs.bk
+Cargo.lock
+
+# CDK
+cdk.out/
+infra/cdk.out/
+infra/.cdk.staging/
+
+# IDE/OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Env
+.env
+.env.*
+
+# Coverage/Tests
+coverage/
+*.lcov
+
+# Terraform
+terraform/.terraform/
+terraform/**/.terraform/
+terraform/**/.terraform.lock.hcl
+terraform/**/*.tfstate
+terraform/**/*.tfstate.*
+terraform/**/*.tfstate.backup
+terraform/**/.terraform.tfstate.lock.info
+terraform/**/tfplan
+terraform/**/tfplan-*
+terraform/**/*.auto.tfvars

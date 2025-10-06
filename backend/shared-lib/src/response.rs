@@ -1,0 +1,28 @@
+use lambda_http::{http::StatusCode, Body, Response};
+use serde::Serialize;
+use serde_json;
+
+use crate::error::ApiError;
+
+pub fn success_response<T: Serialize>(data: T) -> Result<Response<Body>, ApiError> {
+    let body = serde_json::to_string(&data)?;
+
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("content-type", "application/json")
+        .header("x-content-type-options", "nosniff")
+        .header("cache-control", "no-store")
+        .body(body.into())
+        .map_err(|e| ApiError::Internal(e.into()))
+}
+
+pub fn created_response<T: Serialize>(data: T) -> Result<Response<Body>, ApiError> {
+    let body = serde_json::to_string(&data)?;
+
+    Response::builder()
+        .status(StatusCode::CREATED)
+        .header("content-type", "application/json")
+        .header("x-content-type-options", "nosniff")
+        .body(body.into())
+        .map_err(|e| ApiError::Internal(e.into()))
+}
