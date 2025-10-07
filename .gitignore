@@ -24,6 +24,7 @@ infra/.cdk.staging/
 .DS_Store
 .idea/
 .vscode/
+.cursor/
 *.swp
 
 # Env
@@ -33,6 +34,9 @@ infra/.cdk.staging/
 # Coverage/Tests
 coverage/
 *.lcov
+*.log
+test-*.html
+response.json
 
 # Terraform
 terraform/.terraform/

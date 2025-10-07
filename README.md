@@ -122,16 +122,20 @@ Ver documentación completa: [`.github/workflows/README.md`](.github/workflows/R
 
 ## 📚 Documentación
 
-- **[Arquitectura](docs/ARCHITECTURE.md)** - Diseño técnico y diagramas
-- **[Deployment](docs/DEPLOYMENT.md)** - Guía de deployment con Terraform
-- **[CI/CD](.github/workflows/README.md)** - Workflows y automatización
-- **[Secrets Setup](.github/SECRETS_SETUP.md)** - Configuración de secrets AWS
+### Documentación Principal
+- **[Arquitectura](docs/infrastructure/ARCHITECTURE.md)** - Diseño técnico y diagramas
+- **[Deployment](docs/deployment/DEPLOYMENT.md)** - Guía de deployment con Terraform
 - **[Desarrollo](docs/DEVELOPMENT.md)** - Setup y desarrollo local
 - **[Autenticación](docs/AUTHENTICATION.md)** - Flujo OAuth 2.0 con Cognito
 - **[API](docs/API.md)** - Especificación de endpoints
 - **[Testing](docs/TESTING.md)** - E2E y unit testing
 - **[Runbook](docs/RUNBOOK.md)** - Operaciones y troubleshooting
 - **[Roadmap](docs/ROADMAP.md)** - Mejoras propuestas
+- **[Onboarding](docs/setup/ONBOARDING_CHECKLIST.md)** - Checklist inicial
+
+### Documentos Históricos
+- **[Archivo de Estados](docs/archive/)** - Estados de completitud por fases
+- **[Configuraciones](docs/archive/)** - Guías de setup y configuración
 
 ---
 

@@ -295,9 +295,9 @@
   </div>
 {/if}
 
-<style>
-  :global(@import '@fullcalendar/core/main.css');
-  :global(@import '@fullcalendar/daygrid/main.css');
-  :global(@import '@fullcalendar/timegrid/main.css');
-  :global(@import '@fullcalendar/list/main.css');
+  <style>
+    @import '@fullcalendar/core/main.css';
+    @import '@fullcalendar/daygrid/main.css';
+    @import '@fullcalendar/timegrid/main.css';
+    @import '@fullcalendar/list/main.css';
 </style>

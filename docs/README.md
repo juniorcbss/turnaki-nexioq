@@ -1,90 +1,77 @@
-# 📚 Documentación Turnaki-NexioQ
+# 📚 Documentación - Turnaki-NexioQ
 
-**Sistema SaaS Multi-Tenant de Reservas Odontológicas**
+Esta carpeta contiene toda la documentación técnica, organizacional y de proceso del proyecto.
 
----
+## 📋 Índice de Documentación
 
-## 📑 Índice de Documentación
+### 🚀 Documentación Principal
 
-### Guías Principales
+| Documento | Descripción |
+|-----------|-------------|
+| **[API.md](API.md)** | Especificación completa de endpoints |
+| **[AUTHENTICATION.md](AUTHENTICATION.md)** | Flujo OAuth 2.0 con Cognito |
+| **[DEVELOPMENT.md](DEVELOPMENT.md)** | Setup y desarrollo local |
+| **[RUNBOOK.md](RUNBOOK.md)** | Operaciones y troubleshooting |
+| **[ROADMAP.md](ROADMAP.md)** | Mejoras propuestas |
+| **[TESTING.md](TESTING.md)** | E2E y unit testing |
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Arquitectura técnica del sistema
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Guía de deployment con Terraform
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Setup y desarrollo local
-- **[AUTHENTICATION.md](AUTHENTICATION.md)** - Flujo de autenticación con Cognito
-- **[API.md](API.md)** - Especificación de endpoints
-- **[TESTING.md](TESTING.md)** - Testing E2E y unitario
-- **[RUNBOOK.md](RUNBOOK.md)** - Operaciones y troubleshooting
-- **[ROADMAP.md](ROADMAP.md)** - Mejoras y features pendientes
-- **[CHANGELOG.md](CHANGELOG.md)** - Historial de cambios
+### 🏗️ Infraestructura
 
-### Documentos Archivados
+| Documento | Descripción |
+|-----------|-------------|
+| **[infrastructure/ARCHITECTURE.md](infrastructure/ARCHITECTURE.md)** | Diseño técnico y diagramas |
 
-Los documentos históricos del desarrollo se encuentran en [`archive/`](archive/)
+### 🚀 Deployment
 
----
+| Documento | Descripción |
+|-----------|-------------|
+| **[deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md)** | Guía de deployment con Terraform |
 
-## 🚀 Quick Start
+### ⚙️ Setup Inicial
 
-### Para Desarrolladores
+| Documento | Descripción |
+|-----------|-------------|
+| **[setup/ONBOARDING_CHECKLIST.md](setup/ONBOARDING_CHECKLIST.md)** | Checklist de configuración inicial |
 
-1. **Setup inicial**: Ver [DEVELOPMENT.md](DEVELOPMENT.md#setup-inicial)
-2. **Autenticación**: Ver [AUTHENTICATION.md](AUTHENTICATION.md#cómo-hacer-login)
-3. **Running tests**: Ver [TESTING.md](TESTING.md#comandos-de-ejecución)
+### 📦 Histórico y Estados
 
-### Para DevOps
+La carpeta **[archive/](archive/)** contiene documentos históricos del desarrollo:
 
-1. **Deploy Terraform**: Ver [DEPLOYMENT.md](DEPLOYMENT.md#deployment)
-2. **Troubleshooting**: Ver [RUNBOOK.md](RUNBOOK.md#troubleshooting-común)
-3. **Rollback**: Ver [RUNBOOK.md](RUNBOOK.md#rollback-y-recuperación)
+- Estados de completitud por fases del proyecto
+- Guías de configuración específicas 
+- Análisis de gaps y retrospectivas
+- Documentos de sprints completados
 
----
+## 🗂️ Organización por Tema
 
-## 🏗️ Stack Tecnológico
+### Backend (Rust + Lambda)
+- [API.md](API.md) - Endpoints y especificación
+- [infrastructure/ARCHITECTURE.md](infrastructure/ARCHITECTURE.md) - Arquitectura serverless
 
-| Capa | Tecnología |
-|------|------------|
-| **Frontend** | SvelteKit 5 + TypeScript |
-| **Backend** | Rust 1.89 + AWS Lambda |
-| **Database** | DynamoDB (single-table) |
-| **Auth** | Cognito User Pool + JWT |
-| **IaC** | Terraform 1.9 |
-| **Monitoring** | CloudWatch + X-Ray |
+### Frontend (Svelte)
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Setup local
+- [TESTING.md](TESTING.md) - Tests E2E
 
----
+### Infraestructura (Terraform)
+- [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md) - Proceso de deployment
+- [infrastructure/ARCHITECTURE.md](infrastructure/ARCHITECTURE.md) - Módulos y recursos
 
-## 📊 Estado Actual
+### Operaciones
+- [RUNBOOK.md](RUNBOOK.md) - Troubleshooting y monitoreo
+- [AUTHENTICATION.md](AUTHENTICATION.md) - Gestión de usuarios
 
-**✅ Sistema 100% Funcional - Listo para Producción**
+## 📝 Convenciones
 
-- **Backend**: 8 Lambdas serverless operativas
-- **Frontend**: PWA con Svelte 5
-- **Infraestructura**: Multi-ambiente (dev/qas/prd) con Terraform
-- **Testing**: 85% coverage en funciones críticas
+- **Formato**: Todos los documentos usan Markdown con emojis para mejor legibilidad
+- **Enlaces**: Referencias relativas dentro de la documentación  
+- **Actualización**: Documentos se mantienen actualizados con cada release
+- **Idioma**: Documentación principal en español, código y commits en inglés
 
-Ver [CHANGELOG.md](CHANGELOG.md) para historial completo.
+## 🔄 Mantenimiento
 
----
-
-## 🤝 Contribuir
-
-Para contribuir al proyecto:
-
-1. Fork el repositorio
-2. Crea una rama feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Sigue las guías en [DEVELOPMENT.md](DEVELOPMENT.md)
-4. Ejecuta tests (`npm test`)
-5. Crea un Pull Request
+Esta documentación se actualiza automáticamente como parte del proceso de CI/CD. 
+Para sugerir cambios, crear un PR con la etiqueta `documentation`.
 
 ---
-
-## 📞 Soporte
-
-- 📧 Email: devops@turnaki.com
-- 📚 Docs: Este directorio
-- 🐛 Issues: GitHub Issues
-
----
-
-**Última actualización**: Octubre 2025  
-**Versión**: 2.0.0 (Migración a Terraform)
+**Última actualización**: 7 de Octubre de 2025  
+**Mantenido por**: Equipo Turnaki-NexioQ
