@@ -22,12 +22,12 @@ cors_allowed_origins = [
 ]
 
 # SES
-ses_email_identity  = null  # Cambiar por email verificado si es necesario
+ses_email_identity  = null # Cambiar por email verificado si es necesario
 ses_domain_identity = null
 
 # Tags
 tags = {
-  Project     = "Turnaki-NexioQ"
-  Team        = "DevOps"
-  CostCenter  = "Development"
+  Project    = "Turnaki-NexioQ"
+  Team       = "DevOps"
+  CostCenter = "Development"
 }
