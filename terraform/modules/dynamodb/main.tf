@@ -2,10 +2,10 @@
 # Propósito: Tabla principal con GSIs para queries eficientes
 
 resource "aws_dynamodb_table" "main" {
-  name           = "${var.project_name}-${var.environment}-main"
-  billing_mode   = var.billing_mode
-  hash_key       = "PK"
-  range_key      = "SK"
+  name         = "${var.project_name}-${var.environment}-main"
+  billing_mode = var.billing_mode
+  hash_key     = "PK"
+  range_key    = "SK"
 
   attribute {
     name = "PK"
