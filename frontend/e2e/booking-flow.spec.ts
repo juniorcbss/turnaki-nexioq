@@ -10,7 +10,7 @@ test.use({
         localStorage: [
           {
             name: 'tk_nq_token',
-            value: 'mock-jwt-token-for-testing' // En producción, usar token real
+            value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJncm91cHMiOlsiUGFjaWVudGUiXSwidGVuYW50X2lkIjoidGVuYW50LWRlbW8tMDAxIn0.test'
           }
         ]
       }

@@ -41,7 +41,7 @@ async fn schedule_reminder(req: Request) -> Result<Response<Body>, ApiError> {
   let reminder_24h = appointment_time - chrono::Duration::hours(24);
   let reminder_2h = appointment_time - chrono::Duration::hours(2);
   
-  let config = aws_config::load_from_env().await;
+  let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
   let scheduler_client = SchedulerClient::new(&config);
   
   let role_arn = std::env::var("SCHEDULER_ROLE_ARN")
@@ -58,7 +58,9 @@ async fn schedule_reminder(req: Request) -> Result<Response<Body>, ApiError> {
     "booking_id": payload.booking_id,
     "patient_email": payload.patient_email,
     "patient_name": payload.patient_name,
-    "hours_before": 24
+    "hours_before": 24,
+    "appointment_date": appointment_time.format("%Y-%m-%d").to_string(),
+    "appointment_time": appointment_time.format("%H:%M").to_string()
   });
   
   scheduler_client
@@ -93,7 +95,9 @@ async fn schedule_reminder(req: Request) -> Result<Response<Body>, ApiError> {
     "booking_id": payload.booking_id,
     "patient_email": payload.patient_email,
     "patient_name": payload.patient_name,
-    "hours_before": 2
+    "hours_before": 2,
+    "appointment_date": appointment_time.format("%Y-%m-%d").to_string(),
+    "appointment_time": appointment_time.format("%H:%M").to_string()
   });
   
   scheduler_client

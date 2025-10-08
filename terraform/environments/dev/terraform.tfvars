@@ -7,18 +7,21 @@ environment  = "dev"
 # Cognito
 cognito_callback_urls = [
   "http://localhost:5173",
-  "http://localhost:5173/callback"
+  "http://localhost:5173/callback",
+  "https://d2rwm4uq5d71nu.cloudfront.net/auth/callback"
 ]
 
 cognito_logout_urls = [
   "http://localhost:5173",
-  "http://localhost:5173/logout"
+  "http://localhost:5173/logout",
+  "https://d2rwm4uq5d71nu.cloudfront.net"
 ]
 
 # CORS
 cors_allowed_origins = [
   "http://localhost:5173",
-  "http://127.0.0.1:5173"
+  "http://127.0.0.1:5173",
+  "https://d2rwm4uq5d71nu.cloudfront.net"
 ]
 
 # SES

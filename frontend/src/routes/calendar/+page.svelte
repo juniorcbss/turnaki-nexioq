@@ -6,9 +6,10 @@
   import interactionPlugin from '@fullcalendar/interaction';
   import listPlugin from '@fullcalendar/list';
   import { apiClient } from '$lib/api.svelte';
-  import { auth } from '$lib/auth.svelte';
+  import type { BookingDto } from '$lib/api.svelte';
+  import { authStore } from '$lib/auth.svelte';
   
-  let calendarEl: HTMLElement;
+  let calendarEl = $state<HTMLElement>();
   let calendar: Calendar;
   let bookings = $state<any[]>([]);
   let loading = $state(true);
@@ -18,10 +19,16 @@
   let showRescheduleModal = $state(false);
   let newStartTime = $state('');
   
-  const TENANT_ID = 'tenant-demo-001';
+  const TENANT_ID = authStore.user?.tenant_id || 'tenant-demo-001';
   
   onMount(async () => {
+    const groups = authStore.user?.groups || [];
+    if (!groups.includes('Admin') && !groups.includes('Owner') && !groups.includes('Recepción') && !groups.includes('Odontólogo')) {
+      return;
+    }
     await loadBookings();
+    
+    if (!calendarEl) return;
     
     calendar = new Calendar(calendarEl, {
       plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
@@ -76,7 +83,7 @@
     try {
       loading = true;
       error = '';
-      const response = await apiClient.get(`/bookings?tenant_id=${TENANT_ID}`);
+      const response = await apiClient.get<{ bookings: BookingDto[] }>(`/bookings?tenant_id=${TENANT_ID}`);
       bookings = response.bookings || [];
       
       // Actualizar eventos del calendario si ya está renderizado
@@ -205,17 +212,17 @@
       
       <div class="space-y-3">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Paciente</label>
+          <div class="block text-sm font-medium text-gray-700">Paciente</div>
           <p class="text-gray-900">{selectedBooking.patient_name}</p>
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-gray-700">Email</label>
+          <div class="block text-sm font-medium text-gray-700">Email</div>
           <p class="text-gray-900">{selectedBooking.patient_email}</p>
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-gray-700">Fecha/Hora</label>
+          <div class="block text-sm font-medium text-gray-700">Fecha/Hora</div>
           <p class="text-gray-900">
             {new Date(selectedBooking.start_time).toLocaleString('es-EC', {
               dateStyle: 'full',
@@ -225,7 +232,7 @@
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-gray-700">Estado</label>
+          <div class="block text-sm font-medium text-gray-700">Estado</div>
           <span class={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
             selectedBooking.status === 'confirmed' 
               ? 'bg-green-100 text-green-800' 
@@ -269,8 +276,9 @@
       <h2 class="text-2xl font-bold mb-4">Reprogramar Cita</h2>
       
       <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Nueva Fecha/Hora</label>
+        <label for="reschedule-datetime" class="block text-sm font-medium text-gray-700 mb-2">Nueva Fecha/Hora</label>
         <input
+          id="reschedule-datetime"
           type="datetime-local"
           bind:value={newStartTime}
           class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -296,8 +304,8 @@
 {/if}
 
   <style>
-    @import '@fullcalendar/core/main.css';
-    @import '@fullcalendar/daygrid/main.css';
-    @import '@fullcalendar/timegrid/main.css';
-    @import '@fullcalendar/list/main.css';
+    /* FullCalendar CSS imports removed temporarily to fix build issues */
+    .fc {
+      font-family: system-ui, sans-serif;
+    }
 </style>

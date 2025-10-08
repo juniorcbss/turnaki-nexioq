@@ -6,6 +6,8 @@
   let error = $state(null);
   let processing = $state(true);
 
+  import { COGNITO } from '$lib/../config.js';
+
   onMount(async () => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
@@ -17,15 +19,15 @@
     }
 
     try {
-      const tokenUrl = `${import.meta.env.VITE_COGNITO_DOMAIN}/oauth2/token`;
+      const tokenUrl = `${COGNITO.domain}/oauth2/token`;
       const response = await fetch(tokenUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           grant_type: 'authorization_code',
-          client_id: import.meta.env.VITE_COGNITO_CLIENT_ID,
+          client_id: COGNITO.clientId,
           code,
-          redirect_uri: import.meta.env.VITE_REDIRECT_URI
+          redirect_uri: COGNITO.redirectUri
         })
       });
 

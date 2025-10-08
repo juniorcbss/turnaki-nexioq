@@ -2,11 +2,10 @@ interface User {
   email: string;
   name?: string;
   groups?: string[];
+  tenant_id?: string;
 }
 
-const COGNITO_DOMAIN = import.meta.env.VITE_COGNITO_DOMAIN;
-const CLIENT_ID = import.meta.env.VITE_COGNITO_CLIENT_ID;
-const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI || 'http://localhost:5173/auth/callback';
+import { COGNITO } from '../config.js';
 
 class AuthStore {
   user = $state<User | null>(null);
@@ -28,7 +27,8 @@ class AuthStore {
       this.user = {
         email: payload.email,
         name: payload.name,
-        groups: payload['cognito:groups'] || []
+        groups: payload['cognito:groups'] || [],
+        tenant_id: payload.tenant_id || payload['custom:tenant_id']
       };
     } catch (e) {
       this.logout();
@@ -36,7 +36,7 @@ class AuthStore {
   }
 
   login() {
-    const url = `${COGNITO_DOMAIN}/oauth2/authorize?client_id=${CLIENT_ID}&response_type=code&scope=email+openid+profile&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+    const url = `${COGNITO.domain}/oauth2/authorize?client_id=${COGNITO.clientId}&response_type=code&scope=email+openid+profile&redirect_uri=${encodeURIComponent(COGNITO.redirectUri)}`;
     window.location.href = url;
   }
 

@@ -297,6 +297,37 @@ module "lambda_send_notification" {
   tags = var.tags
 }
 
+resource "aws_iam_role" "eventbridge_scheduler" {
+  name               = "${var.project_name}-${var.environment}-eventbridge-scheduler"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = { Service = "scheduler.amazonaws.com" }
+        Action   = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy" "eventbridge_scheduler_invoke" {
+  role = aws_iam_role.eventbridge_scheduler.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["lambda:InvokeFunction"]
+        Resource = [module.lambda_send_notification.function_arn]
+      }
+    ]
+  })
+}
+
 module "lambda_schedule_reminder" {
   source = "../../modules/lambda"
 
@@ -312,7 +343,9 @@ module "lambda_schedule_reminder" {
   log_retention_days  = 7
 
   environment_variables = {
-    SES_CONFIGURATION_SET = module.ses.configuration_set_name
+    SES_CONFIGURATION_SET   = module.ses.configuration_set_name
+    SCHEDULER_ROLE_ARN      = aws_iam_role.eventbridge_scheduler.arn
+    NOTIFICATION_LAMBDA_ARN = module.lambda_send_notification.function_arn
   }
 
   tags = var.tags

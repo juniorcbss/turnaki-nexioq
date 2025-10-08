@@ -19,11 +19,16 @@ test.describe('Flujo Completo de Reserva', () => {
   test('debe completar el flujo de reserva CON mock de auth', async ({ page }) => {
     // Mock de autenticación en Local Storage
     await page.addInitScript(() => {
-      localStorage.setItem('token', 'mock-jwt-token-for-testing');
+      // JWT simulado con payload que contiene email/grupos/tenant_id (no verificado)
+      const header = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+      const payload = 'eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoiVGVzdCBVc2VyIiwiY29nbml0bzpncm91cHMiOlsiUGFjaWVudGUiXSwidGVuYW50X2lkIjoidGVuYW50LWRlbW8tMDAxIn0';
+      const token = `${header}.${payload}.test`;
+      localStorage.setItem('tk_nq_token', token);
       localStorage.setItem('user', JSON.stringify({
         email: 'test@example.com',
         name: 'Test User',
-        groups: ['Paciente']
+        groups: ['Paciente'],
+        tenant_id: 'tenant-demo-001'
       }));
     });
 
@@ -115,10 +120,14 @@ test.describe('Flujo Completo de Reserva', () => {
   test('debe verificar llamadas API durante la reserva', async ({ page }) => {
     // Mock de autenticación
     await page.addInitScript(() => {
-      localStorage.setItem('token', 'mock-jwt-token');
+      const header = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+      const payload = 'eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJncm91cHMiOlsiUGFjaWVudGUiXSwidGVuYW50X2lkIjoidGVuYW50LWRlbW8tMDAxIn0';
+      const token = `${header}.${payload}.test`;
+      localStorage.setItem('tk_nq_token', token);
       localStorage.setItem('user', JSON.stringify({
         email: 'test@example.com',
-        groups: ['Paciente']
+        groups: ['Paciente'],
+        tenant_id: 'tenant-demo-001'
       }));
     });
 

@@ -1,7 +1,7 @@
-use lambda_http::{run, service_fn, Body, Request, Response, Error, RequestPayloadExt, RequestExt};
+use lambda_http::{run, service_fn, Body, Request, Response, Error, RequestPayloadExt};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
-use shared_lib::{init_tracing, success_response, created_response, ApiError, get_client, table_name};
+use shared_lib::{init_tracing, success_response, created_response, ApiError, get_client, table_name, require_tenant};
 use aws_sdk_dynamodb::types::AttributeValue;
 use uuid::Uuid;
 
@@ -67,20 +67,29 @@ async fn create_booking(req: Request) -> Result<Response<Body>, ApiError> {
     payload.validate()
         .map_err(|e| ApiError::Validation(format!("{:?}", e)))?;
     
+    // Enforce multitenancy: tenant del token debe coincidir con el payload
+    let tenant_from_token = require_tenant(&req)?;
+    if tenant_from_token != payload.tenant_id {
+        return Err(ApiError::Forbidden("tenant_id del payload no coincide con el token".into()));
+    }
+
     let booking_id = Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
     
-    // Parse start_time y calcular end_time (TODO: consultar duración del treatment)
+    // Parse start_time
     let start = chrono::DateTime::parse_from_rfc3339(&payload.start_time)
         .map_err(|_| ApiError::Validation("start_time inválido (usar ISO8601)".into()))?;
-    let end = start + chrono::Duration::minutes(45); // Default 45 min
+    // Obtener duración y buffer desde el tratamiento
+    let treatment_minutes = fetch_treatment_duration_minutes(&tenant_from_token, &payload.treatment_id).await?;
+    let buffer_minutes = fetch_treatment_buffer_minutes(&tenant_from_token, &payload.treatment_id).await?;
+    let end = start + chrono::Duration::minutes((treatment_minutes + buffer_minutes) as i64);
     
     let client = get_client().await;
     
     // Reserva atómica con ConditionExpression
     // PK=TENANT#tid#SITE#sid#DATE#2025-09-30, SK=SLOT#10:00#prof-123
     let slot_pk = format!("TENANT#{}#SITE#{}#DATE#{}", 
-        payload.tenant_id, payload.site_id, start.format("%Y-%m-%d"));
+        tenant_from_token, payload.site_id, start.format("%Y-%m-%d"));
     let slot_sk = format!("SLOT#{}#{}", start.format("%H:%M"), payload.professional_id);
     
     let transact_result = client.transact_write_items()
@@ -107,12 +116,12 @@ async fn create_booking(req: Request) -> Result<Response<Body>, ApiError> {
                         .table_name(table_name())
                         .item("PK", AttributeValue::S(format!("BOOKING#{}", booking_id)))
                         .item("SK", AttributeValue::S("METADATA".to_string()))
-                        .item("GSI1PK", AttributeValue::S(format!("TENANT#{}", payload.tenant_id)))
+                        .item("GSI1PK", AttributeValue::S(format!("TENANT#{}", tenant_from_token)))
                         .item("GSI1SK", AttributeValue::S(format!("BOOKING#{}", booking_id)))
                         .item("GSI3PK", AttributeValue::S(format!("PROFESSIONAL#{}", payload.professional_id)))
                         .item("GSI3SK", AttributeValue::S(start.to_rfc3339()))
                         .item("id", AttributeValue::S(booking_id.clone()))
-                        .item("tenantId", AttributeValue::S(payload.tenant_id.clone()))
+                        .item("tenantId", AttributeValue::S(tenant_from_token.clone()))
                         .item("siteId", AttributeValue::S(payload.site_id.clone()))
                         .item("professionalId", AttributeValue::S(payload.professional_id.clone()))
                         .item("treatmentId", AttributeValue::S(payload.treatment_id.clone()))
@@ -136,7 +145,7 @@ async fn create_booking(req: Request) -> Result<Response<Body>, ApiError> {
             
             let booking = Booking {
                 id: booking_id,
-                tenant_id: payload.tenant_id,
+                tenant_id: tenant_from_token,
                 site_id: payload.site_id,
                 professional_id: payload.professional_id,
                 treatment_id: payload.treatment_id,
@@ -161,9 +170,8 @@ async fn create_booking(req: Request) -> Result<Response<Body>, ApiError> {
 }
 
 async fn list_bookings(req: Request) -> Result<Response<Body>, ApiError> {
-    let tenant_id = req.query_string_parameters_ref()
-        .and_then(|params| params.first("tenant_id"))
-        .ok_or_else(|| ApiError::Validation("tenant_id requerido".into()))?;
+    // Enforce multitenancy desde el token, ignorando tenant_id por query si difiere
+    let tenant_id = require_tenant(&req)?;
     
     let client = get_client().await;
     
@@ -219,7 +227,14 @@ async fn cancel_booking(req: Request) -> Result<Response<Body>, ApiError> {
     
     let tenant_id = item.get("tenantId")
         .and_then(|v| v.as_s().ok())
-        .ok_or_else(|| ApiError::Internal(anyhow::anyhow!("tenantId no encontrado")))?;
+        .ok_or_else(|| ApiError::Internal(anyhow::anyhow!("tenantId no encontrado")))?
+        .to_string();
+
+    // Verificar que el tenant del token coincide
+    let tenant_from_token = require_tenant(&req)?;
+    if tenant_from_token != tenant_id {
+        return Err(ApiError::Forbidden("No puedes cancelar reservas de otro tenant".into()));
+    }
     
     let site_id = item.get("siteId")
         .and_then(|v| v.as_s().ok())
@@ -327,6 +342,12 @@ async fn update_booking(req: Request) -> Result<Response<Body>, ApiError> {
     let tenant_id = item.get("tenantId")
         .and_then(|v| v.as_s().ok())
         .ok_or_else(|| ApiError::Internal(anyhow::anyhow!("tenantId no encontrado")))?.to_string();
+
+    // Enforce multitenancy del token
+    let tenant_from_token = require_tenant(&req)?;
+    if tenant_from_token != tenant_id {
+        return Err(ApiError::Forbidden("No puedes reprogramar reservas de otro tenant".into()));
+    }
     
     let site_id = item.get("siteId")
         .and_then(|v| v.as_s().ok())
@@ -346,7 +367,14 @@ async fn update_booking(req: Request) -> Result<Response<Body>, ApiError> {
     let new_start = chrono::DateTime::parse_from_rfc3339(&payload.start_time)
         .map_err(|_| ApiError::Validation("start_time inválido (usar ISO8601)".into()))?;
     
-    let new_end = new_start + chrono::Duration::minutes(45);
+    // Calcular nueva duración según el tratamiento
+    let treatment_id = item.get("treatmentId")
+        .and_then(|v| v.as_s().ok())
+        .ok_or_else(|| ApiError::Internal(anyhow::anyhow!("treatmentId no encontrado")))?
+        .to_string();
+    let treatment_minutes = fetch_treatment_duration_minutes(&tenant_id, &treatment_id).await?;
+    let buffer_minutes = fetch_treatment_buffer_minutes(&tenant_id, &treatment_id).await?;
+    let new_end = new_start + chrono::Duration::minutes((treatment_minutes + buffer_minutes) as i64);
     
     let old_slot_pk = format!("TENANT#{}#SITE#{}#DATE#{}", tenant_id, site_id, old_start.format("%Y-%m-%d"));
     let old_slot_sk = format!("SLOT#{}#{}", old_start.format("%H:%M"), professional_id);
@@ -424,6 +452,42 @@ async fn update_booking(req: Request) -> Result<Response<Body>, ApiError> {
             }
         }
     }
+}
+
+async fn fetch_treatment_duration_minutes(tenant_id: &str, treatment_id: &str) -> Result<i64, ApiError> {
+    let client = get_client().await;
+    let result = client.get_item()
+        .table_name(table_name())
+        .key("PK", AttributeValue::S(format!("TENANT#{}", tenant_id)))
+        .key("SK", AttributeValue::S(format!("TREATMENT#{}", treatment_id)))
+        .send()
+        .await
+        .map_err(|e| ApiError::Internal(anyhow::anyhow!("DynamoDB get error: {}", e)))?;
+
+    let item = result.item().ok_or_else(|| ApiError::NotFound("Tratamiento no encontrado".into()))?;
+    let duration = item.get("durationMinutes")
+        .and_then(|v| v.as_n().ok())
+        .and_then(|n| n.parse::<i64>().ok())
+        .unwrap_or(45);
+    Ok(duration)
+}
+
+async fn fetch_treatment_buffer_minutes(tenant_id: &str, treatment_id: &str) -> Result<i64, ApiError> {
+    let client = get_client().await;
+    let result = client.get_item()
+        .table_name(table_name())
+        .key("PK", AttributeValue::S(format!("TENANT#{}", tenant_id)))
+        .key("SK", AttributeValue::S(format!("TREATMENT#{}", treatment_id)))
+        .send()
+        .await
+        .map_err(|e| ApiError::Internal(anyhow::anyhow!("DynamoDB get error: {}", e)))?;
+
+    let item = result.item().ok_or_else(|| ApiError::NotFound("Tratamiento no encontrado".into()))?;
+    let buffer = item.get("bufferMinutes")
+        .and_then(|v| v.as_n().ok())
+        .and_then(|n| n.parse::<i64>().ok())
+        .unwrap_or(0);
+    Ok(buffer)
 }
 
 #[tokio::main]

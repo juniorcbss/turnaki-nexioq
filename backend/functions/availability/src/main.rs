@@ -1,7 +1,7 @@
 use lambda_http::{run, service_fn, Body, Request, Response, Error, RequestPayloadExt};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
-use shared_lib::{init_tracing, success_response, ApiError, get_client, table_name};
+use shared_lib::{init_tracing, success_response, ApiError, get_client, table_name, require_tenant};
 use aws_sdk_dynamodb::types::AttributeValue;
 use chrono::{DateTime, Utc, Duration as ChronoDuration};
 
@@ -27,6 +27,9 @@ struct Slot {
 
 async fn handler(req: Request) -> Result<Response<Body>, Error> {
     let result: Result<Response<Body>, ApiError> = (|| async {
+        // Multitenancy: extraer tenant desde el token
+        let tenant_id = require_tenant(&req)?;
+
         let payload = req.payload::<AvailabilityRequest>()?
             .ok_or_else(|| ApiError::Validation("Body vacío".into()))?;
         
@@ -46,11 +49,10 @@ async fn handler(req: Request) -> Result<Response<Body>, Error> {
         });
         let date = date_str.as_str();
         
-        let occupied_slots = query_occupied_slots(&payload.site_id, date).await?;
+        let occupied_slots = query_occupied_slots(&tenant_id, &payload.site_id, date).await?;
         
         // Generar slots disponibles (horario 9am-5pm, cada 15 min)
         let mut available_slots = vec![];
-        let base_date = format!("{}T00:00:00Z", date);
         let start_hour = 9;
         let end_hour = 17;
         
@@ -61,9 +63,13 @@ async fn handler(req: Request) -> Result<Response<Body>, Error> {
                     .map_err(|_| ApiError::Internal(anyhow::anyhow!("Date parse error")))?
                     + ChronoDuration::minutes(45);
                 
-                let is_occupied = occupied_slots.iter().any(|slot| {
-                    slot.starts_with(&format!("{:02}:{:02}", hour, minute))
-                });
+                let prefix = if let Some(pid) = &payload.professional_id {
+                    format!("{:02}:{:02}#{}", hour, minute, pid)
+                } else {
+                    format!("{:02}:{:02}", hour, minute)
+                };
+
+                let is_occupied = occupied_slots.iter().any(|slot| slot.starts_with(&prefix));
                 
                 if !is_occupied {
                     available_slots.push(Slot {
@@ -91,11 +97,11 @@ async fn handler(req: Request) -> Result<Response<Body>, Error> {
     }
 }
 
-async fn query_occupied_slots(site_id: &str, date: &str) -> Result<Vec<String>, ApiError> {
+async fn query_occupied_slots(tenant_id: &str, site_id: &str, date: &str) -> Result<Vec<String>, ApiError> {
     let client = get_client().await;
     
-    // Query slots reservados para esta fecha
-    let pk = format!("SITE#{}#DATE#{}", site_id, date);
+    // Query slots reservados para esta fecha alineado con clave de bookings
+    let pk = format!("TENANT#{}#SITE#{}#DATE#{}", tenant_id, site_id, date);
     
     let result = client.query()
         .table_name(table_name())
@@ -110,6 +116,7 @@ async fn query_occupied_slots(site_id: &str, date: &str) -> Result<Vec<String>, 
         .iter()
         .filter_map(|item| {
             let sk = item.get("SK").and_then(|v| v.as_s().ok())?;
+            // SLOT#HH:MM#PROFESSIONAL_ID
             sk.strip_prefix("SLOT#").map(|s| s.to_string())
         })
         .collect();

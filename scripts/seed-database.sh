@@ -14,4 +14,4 @@ aws cloudformation describe-stacks --stack-name AuthStack \
 echo ""
 echo "Luego ejecuta:"
 echo "export TOKEN=<tu-id-token>"
-echo "curl -X POST $API_URL/tenants -H \"Authorization: Bearer \$TOKEN\" -H \"Content-Type: application/json\" -d '{\"name\":\"Clínica Sonrisas\",\"contact_email\":\"admin@sonrisas.com\",\"timezone\":\"America/Bogota\"}'"
+echo "curl -X POST $API_URL/tenants -H \"Authorization: Bearer \$TOKEN\" -H \"Content-Type: application/json\" -d '{\"name\":\"Clínica Sonrisas\",\"contact_email\":\"admin@sonrisas.com\",\"timezone\":\"America/Guayaquil\"}'"

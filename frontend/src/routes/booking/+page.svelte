@@ -24,9 +24,9 @@
   // Booking result
   let bookingConfirmed = $state(null);
   
-  const MOCK_TENANT_ID = 'tenant-demo-001';
-  const MOCK_SITE_ID = 'site-001';
-  const MOCK_PROFESSIONAL_ID = 'prof-001';
+  const TENANT_ID = authStore.user?.tenant_id || 'tenant-demo-001';
+  const SITE_ID = 'site-001';
+  const PROFESSIONAL_ID = 'prof-001';
 
   onMount(async () => {
     if (!authStore.isAuthenticated) {
@@ -41,7 +41,7 @@
   async function loadTreatments() {
     loading = true;
     try {
-      const result = await api.listTreatments(MOCK_TENANT_ID);
+      const result = await api.listTreatments(TENANT_ID);
       treatments = result.treatments || [];
       
       // Mock treatments si la tabla está vacía
@@ -76,8 +76,8 @@
     loading = true;
     try {
       const result = await api.getAvailability({
-        site_id: MOCK_SITE_ID,
-        professional_id: MOCK_PROFESSIONAL_ID,
+        site_id: SITE_ID,
+        professional_id: PROFESSIONAL_ID,
         date: selectedDate
       });
       
@@ -99,8 +99,8 @@
 
   function selectTimeSlot(slot) {
     selectedTime = slot.start;
-    patientName = authStore.currentUser?.name || '';
-    patientEmail = authStore.currentUser?.email || '';
+    patientName = authStore.user?.name || '';
+    patientEmail = authStore.user?.email || '';
     step = 3;
   }
 
@@ -117,9 +117,9 @@
       const startDateTime = `${selectedDate}T${selectedTime}:00Z`;
       
       const result = await api.createBooking({
-        tenant_id: MOCK_TENANT_ID,
-        site_id: MOCK_SITE_ID,
-        professional_id: MOCK_PROFESSIONAL_ID,
+        tenant_id: TENANT_ID,
+        site_id: SITE_ID,
+        professional_id: PROFESSIONAL_ID,
         treatment_id: selectedTreatment.id,
         start_time: startDateTime,
         patient_name: patientName,

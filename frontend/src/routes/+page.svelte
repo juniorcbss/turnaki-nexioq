@@ -1,8 +1,9 @@
 <script>
   import { onMount } from 'svelte';
   import { authStore } from '$lib/auth.svelte';
+  import { API_BASE_URL } from '../config.js';
   
-  let apiBase = $state(import.meta.env.VITE_API_BASE || '');
+  let apiBase = $state(API_BASE_URL);
   let healthStatus = $state(null);
   let loading = $state(false);
   let error = $state(null);

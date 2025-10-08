@@ -1,7 +1,42 @@
 import { authStore } from './auth.svelte';
+import { API_BASE_URL } from '../config.js';
+
+export interface HealthResponse {
+  status: string;
+  service: string;
+}
+
+export interface ListResult<T> {
+  count: number;
+  [key: string]: T[] | number;
+}
+
+export interface TreatmentDto {
+  id: string;
+  tenant_id: string;
+  name: string;
+  duration_minutes: number;
+  buffer_minutes: number;
+  price: number;
+  created_at: string;
+}
+
+export interface BookingDto {
+  id: string;
+  tenant_id: string;
+  site_id: string;
+  professional_id: string;
+  treatment_id: string;
+  start_time: string;
+  end_time: string;
+  patient_name: string;
+  patient_email: string;
+  status: string;
+  created_at: string;
+}
 
 class ApiClient {
-  private baseUrl = import.meta.env.VITE_API_BASE || '';
+  private baseUrl = API_BASE_URL;
 
   private async fetch<T>(path: string, options?: RequestInit): Promise<T> {
     const headers: Record<string, string> = {
@@ -28,11 +63,11 @@ class ApiClient {
       throw new Error(error.error || res.statusText);
     }
 
-    return res.json();
+    return res.json() as Promise<T>;
   }
 
   // Health
-  health = () => this.fetch<{ status: string; service: string }>('/health');
+  health = () => this.fetch<HealthResponse>('/health');
 
   // Tenants
   createTenant = (data: { name: string; contact_email: string; timezone?: string }) =>
@@ -50,7 +85,7 @@ class ApiClient {
   }) => this.fetch('/treatments', { method: 'POST', body: JSON.stringify(data) });
 
   listTreatments = (tenantId: string) =>
-    this.fetch<{ treatments: any[]; count: number }>(`/treatments?tenant_id=${tenantId}`);
+    this.fetch<ListResult<TreatmentDto>>(`/treatments?tenant_id=${tenantId}`);
 
   // Bookings
   createBooking = (data: {
@@ -64,7 +99,7 @@ class ApiClient {
   }) => this.fetch('/bookings', { method: 'POST', body: JSON.stringify(data) });
 
   listBookings = (tenantId: string) =>
-    this.fetch<{ bookings: any[]; count: number }>(`/bookings?tenant_id=${tenantId}`);
+    this.fetch<ListResult<BookingDto>>(`/bookings?tenant_id=${tenantId}`);
 
   cancelBooking = (bookingId: string) =>
     this.fetch(`/bookings/${bookingId}`, { method: 'DELETE' });
@@ -80,12 +115,12 @@ class ApiClient {
     this.fetch('/booking/availability', { method: 'POST', body: JSON.stringify(data) });
 
   // Generic methods
-  get = <T = any>(path: string) => this.fetch<T>(path);
-  post = <T = any>(path: string, data?: any) =>
+  get = <T>(path: string) => this.fetch<T>(path);
+  post = <T>(path: string, data?: unknown) =>
     this.fetch<T>(path, { method: 'POST', body: data ? JSON.stringify(data) : undefined });
-  put = <T = any>(path: string, data?: any) =>
+  put = <T>(path: string, data?: unknown) =>
     this.fetch<T>(path, { method: 'PUT', body: data ? JSON.stringify(data) : undefined });
-  delete = <T = any>(path: string) =>
+  delete = <T>(path: string) =>
     this.fetch<T>(path, { method: 'DELETE' });
 }
 
