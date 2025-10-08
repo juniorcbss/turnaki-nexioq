@@ -39,6 +39,11 @@ jobs:
           cd frontend
           npm ci
 
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm run build
+
       - name: Install Playwright Browsers
         run: |
           cd frontend
