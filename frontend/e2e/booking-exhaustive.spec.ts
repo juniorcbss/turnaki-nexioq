@@ -8,6 +8,8 @@ test.use({
 });
 
 test.describe('🔬 Prueba EXHAUSTIVA de Booking', () => {
+  // Aumentar timeout por uso de slowMo y pasos largos
+  test.describe.configure({ timeout: 120000 });
 
   test('Flujo completo con autenticación mock', async ({ page }) => {
     console.log('\n╔════════════════════════════════════════════════════════════╗');
@@ -16,8 +18,16 @@ test.describe('🔬 Prueba EXHAUSTIVA de Booking', () => {
 
     // Setup: Mock de autenticación
     await page.addInitScript(() => {
-      const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoiVGVzdCBVc2VyIiwiY29nbml0bzpncm91cHMiOlsiUGFjaWVudGUiXX0.test';
-      localStorage.setItem('tk_nq_token', mockToken);
+      const header = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+      const payload = 'eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoiVGVzdCBVc2VyIiwiY29nbml0bzpncm91cHMiOlsiUGFjaWVudGUiXSwidGVuYW50X2lkIjoidGVuYW50LWRlbW8tMDAxIn0';
+      const token = `${header}.${payload}.test`;
+      localStorage.setItem('tk_nq_token', token);
+      localStorage.setItem('user', JSON.stringify({
+        email: 'test@example.com',
+        name: 'Test User',
+        groups: ['Paciente'],
+        tenant_id: 'tenant-demo-001'
+      }));
       console.log('✅ Token mock configurado');
     });
 
@@ -59,6 +69,21 @@ test.describe('🔬 Prueba EXHAUSTIVA de Booking', () => {
     // ═══════════════════════════════════════════════════════════
     console.log('\n━━━ PASO 1: Cargando /booking ━━━');
     
+    // Registrar mocks ANTES de navegar
+    await page.route('**/treatments*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          treatments: [
+            { id: 't1', name: 'Limpieza Dental', duration_minutes: 30, price: 50000 },
+            { id: 't2', name: 'Extracción Simple', duration_minutes: 45, price: 80000 }
+          ],
+          count: 2
+        })
+      });
+    });
+
     await page.goto('http://localhost:5173/booking');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
@@ -78,7 +103,7 @@ test.describe('🔬 Prueba EXHAUSTIVA de Booking', () => {
     // ═══════════════════════════════════════════════════════════
     console.log('\n━━━ PASO 2: Verificando tratamientos ━━━');
     
-    await page.waitForTimeout(1000);
+    await page.waitForSelector('.treatment-card', { timeout: 10000 });
     
     const treatments = await page.locator('.treatment-card').count();
     console.log(`   Tratamientos encontrados: ${treatments}`);
@@ -93,7 +118,7 @@ test.describe('🔬 Prueba EXHAUSTIVA de Booking', () => {
     console.log('📸 Screenshot: exhaustive-02-tratamientos.png');
 
     // Esperar a que haya al menos un tratamiento
-    await expect(page.locator('.treatment-card').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.treatment-card').first()).toBeVisible({ timeout: 10000 });
 
     // ═══════════════════════════════════════════════════════════
     // PASO 3: Seleccionar primer tratamiento

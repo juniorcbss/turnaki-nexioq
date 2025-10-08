@@ -37,7 +37,7 @@ class AuthStore {
 
   login() {
     const url = `${COGNITO.domain}/oauth2/authorize?client_id=${COGNITO.clientId}&response_type=code&scope=email+openid+profile&redirect_uri=${encodeURIComponent(COGNITO.redirectUri)}`;
-    window.location.href = url;
+    window.location.assign(url);
   }
 
   logout() {

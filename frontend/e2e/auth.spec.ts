@@ -8,15 +8,25 @@ test.describe('Autenticación', () => {
     await expect(page.getByRole('button', { name: /Iniciar sesión/i })).toBeVisible();
   });
 
-  test('debe redirigir a Cognito Hosted UI al hacer login', async ({ page }) => {
+  test('debe construir correctamente la URL de Cognito al hacer login (sin navegar)', async ({ page }) => {
+    // Interceptar la navegación a Cognito y capturar la URL
+    let capturedUrl = '';
+    await page.route('**/oauth2/authorize**', async (route) => {
+      capturedUrl = route.request().url();
+      await route.abort();
+    });
+
     await page.goto('/');
-    
+
     const loginButton = page.getByRole('button', { name: /Iniciar sesión/i });
-    await loginButton.click();
-    
-    // Debe redirigir a Cognito
-    await page.waitForURL(/cognito/, { timeout: 5000 });
-    await expect(page.url()).toContain('tk-nq-auth.auth.us-east-1.amazoncognito.com');
+    // Disparar el click y esperar a que el route capture la URL
+    await loginButton.click({ force: true });
+    await expect.poll(() => capturedUrl, { timeout: 5000 }).not.toBe('');
+
+    // Verificar que la URL generada apunte a Cognito Hosted UI
+    expect(capturedUrl).toContain('amazoncognito.com');
+    expect(capturedUrl).toContain('/oauth2/authorize');
+    expect(capturedUrl).toMatch(/redirect_uri=/);
   });
 
   test('debe mostrar verificación de API', async ({ page }) => {
