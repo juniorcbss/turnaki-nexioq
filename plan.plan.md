@@ -14,7 +14,7 @@
 - **Calidad/Observabilidad**: Dashboards, alarmas críticas, logs estructurados, E2E (Playwright) estables.
 - **Operación**: Datos semilla, RUNBOOK, checklist de despliegue y soporte.
 
-## To-dos (final)
+### To-dos
 
 - [x] Consolidar `bookings` (validación, idempotencia, cancelación/reprogramación)
 - [x] Afinar lógica de `availability` y validaciones de slots
