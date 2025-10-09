@@ -149,7 +149,7 @@
   <title>Reservar Cita - Turnaki</title>
 </svelte:head>
 
-<main class="container">
+<main class="container" aria-busy={loading}>
   <div class="wizard">
     <div class="steps-indicator">
       <div class="step {step >= 1 ? 'active' : ''}">1. Servicio</div>
@@ -158,7 +158,7 @@
     </div>
 
     {#if error}
-      <div class="alert alert-error">❌ {error}</div>
+      <div class="alert alert-error" role="alert" aria-live="assertive" data-testid="alert-error">❌ {error}</div>
     {/if}
 
     {#if step === 1}
@@ -166,11 +166,11 @@
         <h2>Selecciona un servicio</h2>
         
         {#if loading}
-          <p>Cargando servicios...</p>
+          <p role="status" aria-live="polite" data-testid="loading-treatments">Cargando servicios...</p>
         {:else}
           <div class="treatments-grid">
             {#each treatments as treatment}
-              <button class="treatment-card" onclick={() => selectTreatment(treatment)}>
+              <button class="treatment-card" type="button" aria-label={`Seleccionar ${treatment.name}`} data-testid="treatment-card" onclick={() => selectTreatment(treatment)}>
                 <h3>{treatment.name}</h3>
                 <div class="duration">{treatment.duration_minutes} minutos</div>
                 {#if treatment.price}
@@ -191,12 +191,12 @@
         <input type="date" bind:value={selectedDate} onchange={loadAvailability} min={new Date().toISOString().split('T')[0]} />
         
         {#if loading}
-          <p>Cargando disponibilidad...</p>
+          <p role="status" aria-live="polite" data-testid="loading-slots">Cargando disponibilidad...</p>
         {:else if availableSlots.length > 0}
           <div class="slots-grid">
             {#each availableSlots as slot}
               {#if slot.available}
-                <button class="slot-btn" onclick={() => selectTimeSlot(slot)}>
+                <button class="slot-btn" type="button" aria-label={`Seleccionar horario ${slot.start}`} data-testid="slot-btn" onclick={() => selectTimeSlot(slot)}>
                   {slot.start}
                 </button>
               {/if}
@@ -206,7 +206,7 @@
           <p>No hay horarios disponibles para esta fecha</p>
         {/if}
         
-        <button class="btn-secondary" onclick={() => step = 1}>← Volver</button>
+        <button class="btn-secondary" type="button" onclick={() => step = 1}>← Volver</button>
       </div>
     {/if}
 
@@ -242,8 +242,8 @@
         </div>
         
         <div class="actions">
-          <button class="btn-secondary" onclick={() => step = 2}>← Volver</button>
-          <button class="btn-primary" onclick={confirmBooking} disabled={loading || !patientName || !patientEmail}>
+          <button class="btn-secondary" type="button" onclick={() => step = 2}>← Volver</button>
+          <button class="btn-primary" type="button" data-testid="confirm-button" onclick={confirmBooking} disabled={loading || !patientName || !patientEmail}>
             {loading ? 'Confirmando...' : 'Confirmar Reserva'}
           </button>
         </div>
@@ -263,8 +263,8 @@
         </div>
         
         <div class="actions">
-          <button class="btn-primary" onclick={restart}>Nueva Reserva</button>
-          <button class="btn-secondary" onclick={() => goto('/my-appointments')}>Ver Mis Citas</button>
+          <button class="btn-primary" type="button" onclick={restart}>Nueva Reserva</button>
+          <button class="btn-secondary" type="button" onclick={() => goto('/my-appointments')}>Ver Mis Citas</button>
         </div>
       </div>
     {/if}

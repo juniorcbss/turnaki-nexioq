@@ -89,27 +89,27 @@
   <title>Mis Citas - Turnaki</title>
 </svelte:head>
 
-<main class="container">
+<main class="container" aria-busy={loading}>
   <h1>Mis Citas</h1>
 
   {#if loading}
-    <div class="loading">Cargando citas...</div>
+    <div class="loading" role="status" aria-live="polite" data-testid="loading-appointments">Cargando citas...</div>
   {:else if error}
-    <div class="empty">
+    <div class="empty" role="alert" aria-live="assertive" data-testid="alert-error">
       <p>{error}</p>
-      <button class="btn-primary" onclick={loadAppointments}>Reintentar</button>
+      <button class="btn-primary" type="button" onclick={loadAppointments}>Reintentar</button>
     </div>
   {:else if appointments.length === 0}
     <div class="empty">
       <p>No tienes citas programadas</p>
-      <button class="btn-primary" onclick={() => goto('/booking')}>
+      <button class="btn-primary" type="button" onclick={() => goto('/booking')}>
         Reservar Cita
       </button>
     </div>
   {:else}
     <div class="appointments-list">
       {#each appointments as a}
-        <div class="appointment-card">
+        <div class="appointment-card" data-testid="appointment-card">
           <div class="appointment-header">
             <h3>{a.treatment}</h3>
             <span class={`status status-${a.status}`}>{statusLabel(a.status)}</span>
@@ -125,8 +125,8 @@
             </div>
           </div>
           <div class="appointment-actions">
-            <button class="btn-link" onclick={() => rescheduleAppointment(a.id)}>Reprogramar</button>
-            <button class="btn-link danger" onclick={() => cancelAppointment(a.id)}>Cancelar</button>
+            <button class="btn-link" type="button" data-testid="reschedule-button" onclick={() => rescheduleAppointment(a.id)}>Reprogramar</button>
+            <button class="btn-link danger" type="button" data-testid="cancel-button" onclick={() => cancelAppointment(a.id)}>Cancelar</button>
           </div>
         </div>
       {/each}
