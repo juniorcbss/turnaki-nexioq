@@ -37,6 +37,8 @@ coverage/
 *.log
 test-*.html
 response.json
+frontend/test-results/
+frontend/playwright-report/
 
 # Terraform
 terraform/.terraform/

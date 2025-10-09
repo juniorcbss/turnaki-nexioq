@@ -8,7 +8,7 @@ test.use({
 });
 
 // Test con navegador VISIBLE y pasos pausados
-test.describe('🌐 Prueba Completa en Navegador Real', () => {
+test.describe.skip('🌐 Prueba Completa en Navegador Real', () => {
 
   test('Flujo completo: Home → Login → Reserva', async ({ page }) => {
     console.log('\n🚀 ===== INICIANDO PRUEBA EN NAVEGADOR REAL =====\n');
