@@ -125,6 +125,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install cargo-lambda
         run: pipx install cargo-lambda
+      - name: Install Zig (for cargo-lambda arm64)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y snapd || true
+          sudo snap install zig --classic || true
       - name: Build lambdas (arm64, release)
         working-directory: backend
         run: cargo lambda build --arm64 --release
@@ -208,10 +213,14 @@ jobs:
         run: |
           aws s3 sync frontend/build "s3://${BUCKET}/" --delete
       - name: Invalidate CloudFront
+        env:
+          DIST_ID: ${{ needs.deploy-infra.outputs.cloudfront_distribution_id }}
         run: |
-          aws cloudfront create-invalidation \
-            --distribution-id $(terraform -chdir=terraform/environments/dev output -raw cloudfront_distribution_id) \
-            --paths "/*"
+          if [ -n "$DIST_ID" ]; then
+            aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
+          else
+            echo "No DIST_ID found; skipping invalidation"
+          fi
 
   seed:
     runs-on: ubuntu-latest
