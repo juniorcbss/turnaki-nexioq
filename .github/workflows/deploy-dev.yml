@@ -286,6 +286,7 @@ jobs:
           SEED_E2E: "1"
         run: |
           npm ci
+          npx playwright install --with-deps
           npm run test:e2e
       - name: Publish Playwright report
         if: always()
