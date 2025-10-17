@@ -130,8 +130,15 @@ jobs:
       - name: Install Zig (for cargo-lambda arm64)
         run: |
           sudo apt-get update
-          sudo apt-get install -y snapd || true
-          sudo snap install zig --classic || true
+          sudo apt-get install -y zig || true
+          if ! command -v zig >/dev/null 2>&1; then
+            ZIG_VERSION="0.13.0"
+            curl -fsSL -o zig.tar.xz "https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz"
+            tar -xJf zig.tar.xz
+            echo "$(pwd)/zig-linux-x86_64-${ZIG_VERSION}" >> $GITHUB_PATH
+          fi
+      - name: Add ARM64 Rust target
+        run: rustup target add aarch64-unknown-linux-gnu
       - name: Build lambdas (arm64, release)
         working-directory: backend
         run: cargo lambda build --arm64 --release
