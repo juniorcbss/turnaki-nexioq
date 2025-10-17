@@ -54,7 +54,23 @@ jobs:
         working-directory: terraform/environments/dev
         run: |
           terraform init
-          terraform plan -out=tfplan
+          terraform plan \
+            -target=module.dynamodb \
+            -target=module.cognito \
+            -target=module.api_gateway \
+            -target=module.frontend \
+            -target=module.waf \
+            -target=module.cloudwatch \
+            -target=module.ses \
+            -target=module.iam_health \
+            -target=module.iam_bookings \
+            -target=module.iam_availability \
+            -target=module.iam_professionals \
+            -target=module.iam_tenants \
+            -target=module.iam_treatments \
+            -target=module.iam_send_notification \
+            -target=module.iam_schedule_reminder \
+            -out=tfplan
           terraform apply -auto-approve tfplan
       - name: Capture outputs
         id: tf-outputs
