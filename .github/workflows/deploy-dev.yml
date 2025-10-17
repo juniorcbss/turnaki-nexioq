@@ -40,6 +40,7 @@ jobs:
       cognito_user_pool_id: ${{ steps.tf-outputs.outputs.cognito_user_pool_id }}
       cognito_client_id: ${{ steps.tf-outputs.outputs.cognito_client_id }}
       cognito_domain: ${{ steps.tf-outputs.outputs.cognito_domain }}
+      cloudfront_distribution_id: ${{ steps.tf-outputs.outputs.cloudfront_distribution_id }}
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -83,6 +84,7 @@ jobs:
           echo "cognito_user_pool_id=$(terraform output -raw cognito_user_pool_id)" >> $GITHUB_OUTPUT
           echo "cognito_client_id=$(terraform output -raw cognito_client_id)" >> $GITHUB_OUTPUT
           echo "cognito_domain=$(terraform output -raw cognito_domain)" >> $GITHUB_OUTPUT
+          echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_OUTPUT
 
   cognito-setup:
     runs-on: ubuntu-latest
