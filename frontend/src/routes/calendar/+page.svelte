@@ -8,6 +8,7 @@
   import { apiClient } from '$lib/api.svelte';
   import type { BookingDto } from '$lib/api.svelte';
   import { authStore } from '$lib/auth.svelte';
+  import { hasRole } from '$lib/auth/roles';
   
   let calendarEl = $state<HTMLElement>();
   let calendar: Calendar;
@@ -20,10 +21,16 @@
   let newStartTime = $state('');
   
   const TENANT_ID = authStore.user?.tenant_id || 'tenant-demo-001';
+  let notAuthorized = $state(false);
   
   onMount(async () => {
-    const groups = authStore.user?.groups || [];
-    if (!groups.includes('Admin') && !groups.includes('Owner') && !groups.includes('Recepción') && !groups.includes('Odontólogo')) {
+    if (!authStore.isAuthenticated) {
+      notAuthorized = true;
+      return;
+    }
+    const user = authStore.user;
+    if (!hasRole(user, ['Admin', 'Owner', 'Recepción', 'Odontólogo'])) {
+      notAuthorized = true;
       return;
     }
     await loadBookings();
@@ -168,12 +175,12 @@
   </div>
   
   {#if loading}
-    <div class="text-center py-12">
+    <div class="text-center py-12" role="status" aria-live="polite" data-testid="loading-calendar">
       <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       <p class="mt-4 text-gray-600">Cargando citas...</p>
     </div>
   {:else if error}
-    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert" aria-live="assertive" data-testid="alert-error">
       <p><strong>Error:</strong> {error}</p>
     </div>
   {:else}

@@ -203,3 +203,32 @@ refactor: extraer lógica de validación
 ---
 
 **Última actualización**: Octubre 2025
+
+## E2E y Semillas
+
+- Ejecutar E2E con servidor dev y semillas deterministas:
+
+```bash
+cd frontend
+SEED_E2E=1 npm run test:e2e
+```
+
+- Semillas deterministas manuales (opcional):
+
+```bash
+TZ=America/Guayaquil NOW_ISO=2025-10-01T09:00:00Z ./scripts/seed-tests.sh
+```
+
+- Roles de ejemplo para pruebas:
+  - Admin: `localStorage.user = { email: 'admin@test.com', groups: ['Admin'], tenant_id: 'tenant-demo-001' }`
+  - Paciente: `localStorage.user = { email: 'user@test.com', groups: ['Paciente'], tenant_id: 'tenant-demo-001' }`
+
+- Guards de rol:
+  - `admin`: requiere `Admin` u `Owner` en `authStore.user.groups`.
+  - `calendar`: requiere uno de `Admin | Owner | Recepción | Odontólogo`.
+
+- Configuración Playwright relevante:
+  - `webServer`: `npm run start:dev` en `http://localhost:5173`
+  - `use.timezoneId`: `America/Guayaquil`
+  - `use.locale`: `es-EC`
+  - Flags anti‑detección en `use.launchOptions.args`

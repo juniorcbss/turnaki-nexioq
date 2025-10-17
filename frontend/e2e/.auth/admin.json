@@ -1,0 +1,12 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        { "name": "tk_nq_token", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQHRlc3QuY29tIiwiY29nbml0bzpncm91cHMiOlsiQWRtaW4iXSwiZ3JvdXBzIjpbIkFkbWluIl0sInRlbmFudF9pZCI6InRlbmFudC1kZW1vLTAwMSJ9.test" },
+        { "name": "user", "value": "{\"email\":\"admin@test.com\",\"groups\":[\"Admin\"],\"tenant_id\":\"tenant-demo-001\"}" }
+      ]
+    }
+  ]
+}

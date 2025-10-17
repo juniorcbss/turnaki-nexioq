@@ -4,7 +4,6 @@ import { test, expect } from '@playwright/test';
 test.use({
   headless: false,
   viewport: { width: 1280, height: 900 },
-  slowMo: 500,
 });
 
 test.describe('🔬 Prueba EXHAUSTIVA de Booking', () => {
@@ -84,7 +83,7 @@ test.describe('🔬 Prueba EXHAUSTIVA de Booking', () => {
       });
     });
 
-    await page.goto('http://localhost:5173/booking');
+  await page.goto(`${process.env.E2E_BASE_URL || 'http://localhost:5173'}/booking`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 

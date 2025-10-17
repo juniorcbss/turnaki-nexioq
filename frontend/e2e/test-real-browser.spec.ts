@@ -4,7 +4,6 @@ import { test, expect } from '@playwright/test';
 test.use({
   headless: false, // Navegador VISIBLE
   viewport: { width: 1280, height: 720 },
-  slowMo: 1000, // Ralentizar acciones para ver mejor
 });
 
 // Test con navegador VISIBLE y pasos pausados
@@ -17,7 +16,7 @@ test.describe.skip('🌐 Prueba Completa en Navegador Real', () => {
     // PASO 1: Cargar la aplicación
     // ============================================
     console.log('📍 PASO 1: Cargando aplicación...');
-    await page.goto('http://localhost:5173');
+    await page.goto(process.env.E2E_BASE_URL || 'http://localhost:5173');
     await page.waitForLoadState('networkidle');
     
     // Screenshot
@@ -106,7 +105,7 @@ test.describe.skip('🌐 Prueba Completa en Navegador Real', () => {
       console.log('   ✅ Click en "Reservar Cita"');
     } else {
       // Navegar directamente
-      await page.goto('http://localhost:5173/booking');
+      await page.goto(`${process.env.E2E_BASE_URL || 'http://localhost:5173'}/booking`);
       console.log('   ✅ Navegación directa a /booking');
     }
     

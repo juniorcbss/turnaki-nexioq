@@ -6,7 +6,7 @@ test.use({
     cookies: [],
     origins: [
       {
-        origin: 'http://localhost:5173',
+        origin: process.env.E2E_BASE_URL || 'http://localhost:5173',
         localStorage: [
           {
             name: 'tk_nq_token',

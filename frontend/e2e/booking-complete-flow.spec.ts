@@ -10,7 +10,7 @@ test.describe('Flujo Completo de Reserva', () => {
 
   test('debe mostrar la página de reserva sin autenticación', async ({ page }) => {
     // Ir directo a /booking sin token
-    await page.goto('http://localhost:5173/booking');
+  await page.goto(`${process.env.E2E_BASE_URL || 'http://localhost:5173'}/booking`);
     
     // Debe redirigir al home porque no está autenticado
     await expect(page).toHaveURL('http://localhost:5173/');

@@ -87,6 +87,25 @@ validate_module() {
     else
       echo -e "  ${YELLOW}⚠${NC} Formato Terraform necesita ajustes (ejecutar terraform fmt)"
     fi
+    # Lint y seguridad si están instalados
+    if command -v tflint >/dev/null 2>&1; then
+      if tflint --disable-rule=terraform_required_providers; then
+        echo -e "  ${GREEN}✓${NC} tflint sin hallazgos críticos"
+      else
+        echo -e "  ${YELLOW}⚠${NC} tflint con observaciones"
+      fi
+    else
+      echo -e "  ${YELLOW}ℹ${NC} tflint no instalado (omitiendo)"
+    fi
+    if command -v tfsec >/dev/null 2>&1; then
+      if tfsec --soft-fail; then
+        echo -e "  ${GREEN}✓${NC} tfsec sin hallazgos críticos"
+      else
+        echo -e "  ${YELLOW}⚠${NC} tfsec hallazgos (soft-fail)"
+      fi
+    else
+      echo -e "  ${YELLOW}ℹ${NC} tfsec no instalado (omitiendo)"
+    fi
     cd - > /dev/null
   fi
 

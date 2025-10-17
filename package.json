@@ -20,6 +20,13 @@
     "test:all": "npm test && npm run test:e2e",
     "lint": "npm run lint:backend && npm run lint:frontend",
     "lint:backend": "cargo fmt --manifest-path backend/Cargo.toml --all -- --check && cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings",
-    "lint:frontend": "npm -w frontend run lint"
+    "lint:frontend": "npm -w frontend run lint",
+    "perf:availability": "k6 run tests/perf/availability.js",
+    "perf:booking": "k6 run tests/perf/booking.js",
+    "security:zap": "bash scripts/zap-baseline.sh",
+    "security:waf": "bash scripts/waf-negative-tests.sh",
+    "infra:smoke": "bash scripts/smoke-infra.sh",
+    "tf:validate": "bash terraform/scripts/validate-all.sh",
+    "tf:validate:modules": "bash terraform/scripts/validate-modules.sh"
   }
 }

@@ -337,29 +337,29 @@ Ver [RUNBOOK.md](RUNBOOK.md#troubleshooting-común) para más detalles.
 
 ---
 
-## CI/CD (Futuro)
+## CI/CD (Dev 100% en AWS)
 
-### GitHub Actions
+### GitHub Actions (deploy + QA)
 
-```yaml
-# .github/workflows/deploy-dev.yml
-name: Deploy Dev
-on:
-  push:
-    branches: [main]
+El workflow `.github/workflows/deploy-dev.yml` realiza:
+- Validación de Terraform y módulos
+- Deploy de infraestructura (dev) con OIDC
+- Build y deploy de Lambdas (Rust) y Frontend (S3 + CloudFront)
+- Seeds de DynamoDB con TZ `America/Guayaquil`
+- Tests unitarios (Rust + Vitest)
+- Tests E2E contra CloudFront (login real Cognito)
+- Seguridad (ZAP baseline + WAF negativos)
+- Performance (k6)
 
-jobs:
-  terraform:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-      - name: Terraform Apply
-        run: |
-          cd terraform/environments/dev
-          terraform init
-          terraform apply -auto-approve
-```
+Secrets requeridos en GitHub:
+- `AWS_ROLE_TO_ASSUME` (ver `setup-aws-oidc.sh`)
+- `E2E_USER_EMAIL` y `E2E_USER_PASSWORD` (usuario de pruebas Cognito)
+
+Variables/outputs usados:
+- `cloudfront_url`, `frontend_bucket_name`, `api_endpoint`
+- `cognito_user_pool_id`, `cognito_client_id`, `cognito_domain`
+
+Trigger: push a `main`.
 
 ---
 

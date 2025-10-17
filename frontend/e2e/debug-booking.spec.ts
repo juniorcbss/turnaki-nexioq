@@ -45,7 +45,7 @@ test('DEBUG: Ver exactamente qué pasa al cargar /booking', async ({ page }) => 
   });
 
   console.log('\n📍 Navegando a /booking...\n');
-  await page.goto('http://localhost:5173/booking', { waitUntil: 'networkidle' });
+  await page.goto(`${process.env.E2E_BASE_URL || 'http://localhost:5173'}/booking`, { waitUntil: 'networkidle' });
 
   // Esperar un poco
   await page.waitForTimeout(3000);

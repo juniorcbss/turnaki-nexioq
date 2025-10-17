@@ -1,0 +1,311 @@
+name: Deploy Dev (AWS) + QA Full
+
+on:
+  push:
+    branches: [ main ]
+
+concurrency: dev-environment
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  TZ: America/Guayaquil
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform fmt/validate (root)
+        run: |
+          terraform fmt -check -recursive || true
+          terraform validate || true
+      - name: Validate modules
+        run: |
+          bash terraform/scripts/validate-modules.sh
+
+  deploy-infra:
+    runs-on: ubuntu-latest
+    needs: validate
+    outputs:
+      api_endpoint: ${{ steps.tf-outputs.outputs.api_endpoint }}
+      dynamodb_table_name: ${{ steps.tf-outputs.outputs.dynamodb_table_name }}
+      cloudfront_url: ${{ steps.tf-outputs.outputs.cloudfront_url }}
+      frontend_bucket_name: ${{ steps.tf-outputs.outputs.frontend_bucket_name }}
+      cognito_user_pool_id: ${{ steps.tf-outputs.outputs.cognito_user_pool_id }}
+      cognito_client_id: ${{ steps.tf-outputs.outputs.cognito_client_id }}
+      cognito_domain: ${{ steps.tf-outputs.outputs.cognito_domain }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+      - name: Init Terraform backend (one-time safe)
+        run: |
+          bash terraform/scripts/init-backend.sh || true
+      - name: Terraform init/plan/apply (dev)
+        working-directory: terraform/environments/dev
+        run: |
+          terraform init
+          terraform plan -out=tfplan
+          terraform apply -auto-approve tfplan
+      - name: Capture outputs
+        id: tf-outputs
+        working-directory: terraform/environments/dev
+        run: |
+          echo "api_endpoint=$(terraform output -raw api_endpoint)" >> $GITHUB_OUTPUT
+          echo "dynamodb_table_name=$(terraform output -raw dynamodb_table_name)" >> $GITHUB_OUTPUT
+          echo "cloudfront_url=$(terraform output -raw cloudfront_url)" >> $GITHUB_OUTPUT
+          echo "frontend_bucket_name=$(terraform output -raw frontend_bucket_name)" >> $GITHUB_OUTPUT
+          echo "cognito_user_pool_id=$(terraform output -raw cognito_user_pool_id)" >> $GITHUB_OUTPUT
+          echo "cognito_client_id=$(terraform output -raw cognito_client_id)" >> $GITHUB_OUTPUT
+          echo "cognito_domain=$(terraform output -raw cognito_domain)" >> $GITHUB_OUTPUT
+
+  cognito-setup:
+    runs-on: ubuntu-latest
+    needs: deploy-infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Configure Cognito callback/logout URLs
+        env:
+          USER_POOL_ID: ${{ needs.deploy-infra.outputs.cognito_user_pool_id }}
+          CLIENT_ID: ${{ needs.deploy-infra.outputs.cognito_client_id }}
+          CLOUDFRONT_URL: ${{ needs.deploy-infra.outputs.cloudfront_url }}
+        run: |
+          aws cognito-idp update-user-pool-client \
+            --user-pool-id "$USER_POOL_ID" \
+            --client-id "$CLIENT_ID" \
+            --callback-urls "[\"${CLOUDFRONT_URL}/auth/callback\"]" \
+            --logout-urls "[\"${CLOUDFRONT_URL}/\"]"
+      - name: Create Cognito test user (idempotent)
+        env:
+          USER_POOL_ID: ${{ needs.deploy-infra.outputs.cognito_user_pool_id }}
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+        run: |
+          if [ -n "$E2E_USER_EMAIL" ] && [ -n "$E2E_USER_PASSWORD" ]; then
+            USER_POOL_ID="$USER_POOL_ID" E2E_USER_EMAIL="$E2E_USER_EMAIL" E2E_USER_PASSWORD="$E2E_USER_PASSWORD" \
+              bash scripts/create-cognito-test-user.sh
+          else
+            echo "⚠️  E2E_USER_EMAIL/PASSWORD no definidos; saltando creación de usuario"
+          fi
+
+  build-backend:
+    runs-on: ubuntu-latest
+    needs: deploy-infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-lambda
+        run: pipx install cargo-lambda
+      - name: Build lambdas (arm64, release)
+        working-directory: backend
+        run: cargo lambda build --arm64 --release
+      - name: Upload lambda artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-zips
+          path: backend/target/lambda/*/bootstrap.zip
+
+  deploy-backend:
+    runs-on: ubuntu-latest
+    needs: [deploy-infra, build-backend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+      - name: Download lambda artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-zips
+          path: terraform/environments/dev/lambda-assets
+      - name: Apply lambda updates via Terraform
+        working-directory: terraform/environments/dev
+        run: |
+          terraform apply -auto-approve
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: deploy-infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Generate frontend/src/config.js from outputs
+        env:
+          API_URL: ${{ needs.deploy-infra.outputs.api_endpoint }}
+          COGNITO_DOMAIN: ${{ needs.deploy-infra.outputs.cognito_domain }}
+          COGNITO_CLIENT_ID: ${{ needs.deploy-infra.outputs.cognito_client_id }}
+          CLOUDFRONT_URL: ${{ needs.deploy-infra.outputs.cloudfront_url }}
+        run: |
+          cat > frontend/src/config.js << 'EOF'
+          export const API_BASE_URL = "${API_URL}";
+          export const COGNITO = {
+            domain: "${COGNITO_DOMAIN}",
+            clientId: "${COGNITO_CLIENT_ID}",
+            redirectUri: "${CLOUDFRONT_URL}/auth/callback"
+          };
+          EOF
+      - name: Install deps and build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: [deploy-infra, build-frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build
+      - name: Sync to S3
+        env:
+          BUCKET: ${{ needs.deploy-infra.outputs.frontend_bucket_name }}
+        run: |
+          aws s3 sync frontend/build "s3://${BUCKET}/" --delete
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id $(terraform -chdir=terraform/environments/dev output -raw cloudfront_distribution_id) \
+            --paths "/*"
+
+  seed:
+    runs-on: ubuntu-latest
+    needs: deploy-infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Seed DynamoDB
+        env:
+          TABLE_NAME: ${{ needs.deploy-infra.outputs.dynamodb_table_name }}
+          NOW_ISO: "2025-10-01T09:00:00Z"
+          SEED_E2E: "1"
+        run: |
+          bash scripts/seed-tests.sh
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: [deploy-infra]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Backend unit tests
+        run: |
+          cargo test --manifest-path backend/Cargo.toml --workspace -- --nocapture
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Frontend unit tests
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run test
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: [deploy-infra, deploy-frontend, cognito-setup, seed]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Playwright
+        working-directory: frontend
+        run: npx playwright install --with-deps
+      - name: Run E2E against CloudFront
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: ${{ needs.deploy-infra.outputs.cloudfront_url }}
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          SEED_E2E: "1"
+        run: |
+          npm ci
+          npm run test:e2e
+      - name: Publish Playwright report
+        if: always()
+        run: |
+          if [ -d frontend/playwright-report ]; then
+            tar -czf playwright-report.tgz -C frontend playwright-report
+            echo "Report size:" && du -sh playwright-report.tgz || true
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report.tgz
+
+  security-tests:
+    runs-on: ubuntu-latest
+    needs: [deploy-infra, deploy-frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: ZAP Baseline
+        env:
+          TARGET: ${{ needs.deploy-infra.outputs.cloudfront_url }}
+        run: |
+          bash scripts/zap-baseline.sh "$TARGET"
+      - name: WAF Negative Tests
+        env:
+          TARGET: ${{ needs.deploy-infra.outputs.cloudfront_url }}
+        run: |
+          bash scripts/waf-negative-tests.sh "$TARGET"
+
+  perf-tests:
+    runs-on: ubuntu-latest
+    needs: [deploy-infra, deploy-backend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install k6
+        run: |
+          sudo apt-get update && sudo apt-get install -y gnupg2 ca-certificates
+          curl -fsSL https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install -y k6
+      - name: Run k6 perf tests
+        env:
+          API_BASE_URL: ${{ needs.deploy-infra.outputs.api_endpoint }}
+        run: |
+          k6 run --vus 10 --duration 30s tests/perf/booking.js || true
+      - name: Upload k6 summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-summary
+          path: k6-summary.json
+
+

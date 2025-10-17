@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { authStore } from '$lib/auth.svelte';
   import { api, apiClient } from '$lib/api.svelte';
+  import { hasRole } from '$lib/auth/roles';
 
   const TENANT_ID = authStore.user?.tenant_id || 'tenant-demo-001';
 
@@ -12,6 +13,7 @@
   let loading = $state(false);
   let error = $state(null);
   let success = $state(null);
+  let notAuthorized = $state(false);
 
   let newTreatment = $state({
     name: '',
@@ -21,9 +23,13 @@
   });
 
   onMount(() => {
-    const groups = authStore.user?.groups || [];
-    if (!groups.includes('Admin') && !groups.includes('Owner')) {
+    if (!authStore.isAuthenticated) {
       goto('/');
+      return;
+    }
+    const user = authStore.user;
+    if (!hasRole(user, ['Admin', 'Owner'])) {
+      notAuthorized = true;
       return;
     }
     loadTreatments();
@@ -84,26 +90,33 @@
   <title>Administración - Turnaki</title>
 </svelte:head>
 
-<main class="container">
+{#if notAuthorized}
+  <main class="container">
+    <div class="alert alert-error" role="alert" aria-live="assertive" data-testid="alert-not-authorized">
+      ❌ No tienes permisos para acceder a Administración.
+    </div>
+  </main>
+{:else}
+<main class="container" aria-busy={loading}>
   <h1>Panel de Administración</h1>
 
   <div class="tabs">
-    <button class="tab {activeTab === 'treatments' ? 'active' : ''}" onclick={() => selectTab('treatments')}>
+    <button class="tab {activeTab === 'treatments' ? 'active' : ''}" type="button" data-testid="tab-treatments" onclick={() => selectTab('treatments')}>
       Tratamientos
     </button>
-    <button class="tab {activeTab === 'professionals' ? 'active' : ''}" onclick={() => selectTab('professionals')}>
+    <button class="tab {activeTab === 'professionals' ? 'active' : ''}" type="button" data-testid="tab-professionals" onclick={() => selectTab('professionals')}>
       Profesionales
     </button>
-    <button class="tab {activeTab === 'settings' ? 'active' : ''}" onclick={() => selectTab('settings')}>
+    <button class="tab {activeTab === 'settings' ? 'active' : ''}" type="button" data-testid="tab-settings" onclick={() => selectTab('settings')}>
       Configuración
     </button>
   </div>
 
   {#if error}
-    <div class="alert alert-error">❌ {error}</div>
+    <div class="alert alert-error" role="alert" aria-live="assertive" data-testid="alert-error">❌ {error}</div>
   {/if}
   {#if success}
-    <div class="alert alert-success">✅ {success}</div>
+    <div class="alert alert-success" role="status" aria-live="polite" data-testid="alert-success">✅ {success}</div>
   {/if}
 
   {#if activeTab === 'treatments'}
@@ -129,7 +142,7 @@
               <input id="price" type="number" bind:value={newTreatment.price} min="0" step="1000" />
             </div>
           </div>
-          <button class="btn-primary" onclick={createTreatment} disabled={loading}>
+          <button class="btn-primary" type="button" data-testid="create-treatment" onclick={createTreatment} disabled={loading}>
             {loading ? 'Creando...' : 'Crear Tratamiento'}
           </button>
         </div>
@@ -209,6 +222,7 @@
     </div>
   {/if}
 </main>
+{/if}
 
 <style>
   .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }

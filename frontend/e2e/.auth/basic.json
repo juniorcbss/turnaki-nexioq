@@ -1,0 +1,12 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        { "name": "tk_nq_token", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAdGVzdC5jb20iLCJncm91cHMiOlsiUGFjaWVudGUiXSwidGVuYW50X2lkIjoidGVuYW50LWRlbW8tMDAxIn0.test" },
+        { "name": "user", "value": "{\"email\":\"user@test.com\",\"groups\":[\"Paciente\"],\"tenant_id\":\"tenant-demo-001\"}" }
+      ]
+    }
+  ]
+}

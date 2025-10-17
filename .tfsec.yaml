@@ -1,0 +1,10 @@
+severity_overrides:
+  aws-s3-enable-bucket-logging: LOW
+  aws-vpc-no-public-ingress-acl: HIGH
+
+exclude:
+  - aws-iam-no-policy-wildcards # permitido en cuentas dev
+
+soft_fail: true
+
+

@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Permitir correr E2E contra entorno remoto (CloudFront) sin levantar servidor local
+const E2E_BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:5173';
+const USE_REMOTE = !!process.env.E2E_BASE_URL;
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -9,7 +13,16 @@ export default defineConfig({
   reporter: 'html',
   
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: E2E_BASE_URL,
+    locale: 'es-EC',
+    timezoneId: 'America/Guayaquil',
+    launchOptions: {
+      args: [
+        '--disable-blink-features=AutomationControlled',
+        '--disable-dev-shm-usage',
+        '--no-sandbox'
+      ]
+    },
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -21,8 +34,10 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: 'npm run preview -- --port 5173',
+  globalSetup: process.env.SEED_E2E ? './tests/global-setup.ts' : undefined,
+
+  webServer: USE_REMOTE ? undefined : {
+    command: 'npm run start:dev -- --port 5173',
     port: 5173,
     reuseExistingServer: !process.env.CI,
   },
