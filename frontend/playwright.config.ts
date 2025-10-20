@@ -16,6 +16,7 @@ export default defineConfig({
     baseURL: E2E_BASE_URL,
     locale: 'es-EC',
     timezoneId: 'America/Guayaquil',
+    headless: true,
     launchOptions: {
       args: [
         '--disable-blink-features=AutomationControlled',

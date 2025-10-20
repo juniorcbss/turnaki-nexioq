@@ -191,7 +191,7 @@ jobs:
           COGNITO_CLIENT_ID: ${{ needs.deploy-infra.outputs.cognito_client_id }}
           CLOUDFRONT_URL: ${{ needs.deploy-infra.outputs.cloudfront_url }}
         run: |
-          cat > frontend/src/config.js << 'EOF'
+          cat > frontend/src/config.js << EOF
           export const API_BASE_URL = "${API_URL}";
           export const COGNITO = {
             domain: "${COGNITO_DOMAIN}",
