@@ -78,6 +78,54 @@ resource "aws_wafv2_web_acl" "main" {
     }
   }
 
+  # AWS Managed Rules - SQL Injection Protection
+  rule {
+    name     = "AWSManagedRulesSQLiRuleSet"
+    priority = 4
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesSQLiRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.project_name}-${var.environment}-sqli"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Geo-blocking (opcional, solo si se configuran países)
+  dynamic "rule" {
+    for_each = length(var.blocked_countries) > 0 ? [1] : []
+    content {
+      name     = "GeoBlockingRule"
+      priority = 100
+
+      action {
+        block {}
+      }
+
+      statement {
+        geo_match_statement {
+          country_codes = var.blocked_countries
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "${var.project_name}-${var.environment}-geo-block"
+        sampled_requests_enabled   = true
+      }
+    }
+  }
+
   visibility_config {
     cloudwatch_metrics_enabled = true
     metric_name                = "${var.project_name}-${var.environment}-waf"

@@ -22,6 +22,12 @@ variable "rate_limit" {
   default     = 2000
 }
 
+variable "blocked_countries" {
+  description = "Lista de códigos de países a bloquear (ej: ['CN', 'RU'])"
+  type        = list(string)
+  default     = []
+}
+
 variable "tags" {
   description = "Tags adicionales"
   type        = map(string)

@@ -63,6 +63,8 @@ cargo test --workspace
 
 ## 🔄 CI/CD Automatizado
 
+**Estado**: ✅ **OPERATIVO** (v2.2.0)
+
 ### GitHub Actions Workflows
 
 | Workflow | Trigger | Descripción |
@@ -73,6 +75,14 @@ cargo test --workspace
 | `terraform-apply-prd` | Manual | Deploy a producción |
 | `backend-ci` | Cambios en backend/ | Tests + build lambdas |
 | `frontend-ci` | Cambios en frontend/ | Tests + build Svelte |
+
+### Seguridad y Observabilidad
+
+- ✅ AWS OIDC integrado (sin access keys)
+- ✅ Alarmas CloudWatch ampliadas (Lambda, DynamoDB, WAF)
+- ✅ WAF con reglas administradas de AWS
+- ✅ Point-in-time recovery en DynamoDB (QAS/PRD)
+- ✅ Módulo Secrets Manager para configuraciones sensibles
 
 ### Flujo de Trabajo
 

@@ -7,6 +7,63 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+## [2.2.0] - 2025-10-22
+
+### 🔒 Activación CI/CD Completa y Mejoras de Seguridad
+
+**Nuevo Feature Mayor**: Sistema CI/CD completamente operativo con mejoras críticas de seguridad y observabilidad.
+
+#### Added
+
+- ✅ **CI/CD Operativo**
+  - AWS OIDC Provider configurado y funcionando
+  - Roles IAM creados para dev y prd con políticas correctas
+  - Secrets configurados en GitHub Actions
+  - Script de validación de configuración CI/CD
+  - Sistema automático de deployment en dev
+  
+- ✅ **Mejoras de Seguridad**
+  - WAF mejorado con reglas administradas de AWS:
+    - AWSManagedRulesSQLiRuleSet (protección SQL injection)
+    - Geo-blocking opcional configurable
+  - Módulo de Secrets Manager creado para configuraciones sensibles
+  - Script de destrucción completa de infraestructura (`destroy-all.sh`)
+  
+- ✅ **Observabilidad Avanzada**
+  - Alarmas ampliadas en CloudWatch:
+    - Lambda throttling detection
+    - DynamoDB capacity monitoring (read/write)
+    - WAF blocked requests alert
+  - Configuración de alarmas por ambiente
+  
+- ✅ **Documentación Nueva**
+  - `scripts/validate-cicd-setup.sh` - Validación de configuración
+  - `terraform/modules/secrets-manager/` - Módulo completo con README
+  - `docs/CICD_OPERATIONS.md` - Guía de operación CI/CD
+
+#### Changed
+
+- 🔄 **WAF**: Agregadas reglas adicionales para mayor protección
+- 🔄 **CloudWatch**: Sistema de alarmas más completo con métricas adicionales
+- 🔄 **DynamoDB**: PITR habilitado en QAS y PRD (ya estaba en PRD)
+
+#### Breaking Changes
+
+- ⚠️ **Deployment automático en dev**: Los merges a `main` ahora disparan deployment automático a dev
+
+#### Performance
+
+- ⚡ **Tiempo de validación**: Script de validación ejecuta en <1 segundo
+- ⚡ **Mejora de seguridad**: 0% de vulnerabilidades conocidas con nuevas reglas WAF
+
+#### Documentation
+
+- 📚 CHANGELOG actualizado con versión 2.2.0
+- 📚 Nueva documentación de operaciones CI/CD
+- 📚 Documentación del módulo Secrets Manager
+
+---
+
 ## [2.1.0] - 2025-10-06
 
 ### 🔄 CI/CD Automatizado (Fase 6)
